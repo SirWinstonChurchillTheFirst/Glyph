@@ -1,0 +1,44 @@
+{
+  "name": "glyph",
+  "version": "0.1.0",
+  "description": "Kleines Champion-Select-Tool: Runen, Build, Skill Order.",
+  "main": "./out/main/index.js",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit",
+    "update-data": "node scripts/update-data.ts",
+    "dist": "electron-vite build && electron-builder --win"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.9.0",
+    "vite": "^7.0.0"
+  },
+  "build": {
+    "appId": "dev.glyph.app",
+    "productName": "Glyph",
+    "files": [
+      "out/**",
+      "data/**"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "artifactName": "Glyph-Setup-${version}.exe"
+    }
+  }
+}
