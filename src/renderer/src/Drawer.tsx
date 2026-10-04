@@ -65,22 +65,22 @@ export function Drawer({
         <div className="flex items-center gap-3">
           <ItemIcon id={detail.id} data={data} size={48} />
           <div>
-            <h2 className="display text-[20px] leading-tight">{item?.name ?? `Item ${detail.id}`}</h2>
-            <div className="text-[12px] text-mute">{item ? `${count(item.gold)} Gold` : ''}</div>
+            <h2 className="display text-xl leading-tight">{item?.name ?? `Item ${detail.id}`}</h2>
+            <div className="text-xs text-mute">{item ? `${count(item.gold)} Gold` : ''}</div>
           </div>
         </div>
         {item && item.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {item.tags.map((tag) => (
-              <span key={tag} className="rounded-full bg-raised px-2 py-0.5 text-[11px] text-mute">
+              <span key={tag} className="rounded-full bg-raised px-2 py-0.5 text-xs text-mute">
                 {TAGS[tag] ?? tag}
               </span>
             ))}
           </div>
         )}
-        {item?.text && <p className="mt-3 text-[12px] text-bone/80 select-text">{item.text}</p>}
+        {item?.text && <p className="mt-3 text-xs text-bone/80 select-text">{item.text}</p>}
 
-        <h3 className="display mt-5 mb-1 text-[14px]">{t('Nutzung')}</h3>
+        <h3 className="display mt-5 mb-1 text-base">{t('Nutzung')}</h3>
         {!overall && slots.length === 0 && !boots ? (
           none
         ) : (
@@ -108,7 +108,7 @@ export function Drawer({
 
         {cores.length > 0 && (
           <>
-            <h3 className="display mt-5 mb-1 text-[14px]">{t('Gekauft zusammen mit')}</h3>
+            <h3 className="display mt-5 mb-1 text-base">{t('Gekauft zusammen mit')}</h3>
             {cores.map((entry) => (
               <div key={entry.ids.join('-')} className="flex items-center justify-between gap-2 border-t border-line py-1.5">
                 <span className="flex gap-1">
@@ -121,7 +121,7 @@ export function Drawer({
             ))}
           </>
         )}
-        <p className="mt-5 text-[11px] text-mute">{t('Durchschnittliche Kaufzeit: liefert die Quelle nicht.')}</p>
+        <p className="mt-5 text-xs text-mute">{t('Durchschnittliche Kaufzeit: liefert die Quelle nicht.')}</p>
       </>
     )
   } else {
@@ -145,13 +145,13 @@ export function Drawer({
         <div className="flex items-center gap-3">
           <RuneIcon id={detail.id} data={data} size={48} />
           <div>
-            <h2 className="display text-[20px] leading-tight">{rune?.name}</h2>
-            <div className="text-[12px] text-mute">{rune ? data.styles[rune.style]?.name : ''}</div>
+            <h2 className="display text-xl leading-tight">{rune?.name}</h2>
+            <div className="text-xs text-mute">{rune ? data.styles[rune.style]?.name : ''}</div>
           </div>
         </div>
-        {rune?.text && <p className="mt-3 text-[12px] text-bone/80 select-text">{rune.text}</p>}
+        {rune?.text && <p className="mt-3 text-xs text-bone/80 select-text">{rune.text}</p>}
 
-        <h3 className="display mt-5 mb-1 text-[14px]">{t('Nutzung')}</h3>
+        <h3 className="display mt-5 mb-1 text-base">{t('Nutzung')}</h3>
         {!primary && !secondary ? (
           none
         ) : (
@@ -173,10 +173,10 @@ export function Drawer({
 
         {isKeystone && keystones.size > 1 && (
           <>
-            <h3 className="display mt-5 mb-1 text-[14px]">{t('Im Vergleich der Keystones')}</h3>
+            <h3 className="display mt-5 mb-1 text-base">{t('Im Vergleich der Keystones')}</h3>
             {[...keystones].map(([id, sum]) => (
               <Row key={id} label={data.runes[id]?.name ?? String(id)}>
-                <span className="display text-[12px] text-mute">{count(sum.games)}</span>
+                <span className="display text-xs text-mute">{count(sum.games)}</span>
                 <WinBar stat={sum} compact />
               </Row>
             ))}
@@ -185,7 +185,7 @@ export function Drawer({
 
         {pages.length > 0 && (
           <>
-            <h3 className="display mt-5 mb-1 text-[14px]">{t('Teil dieser Builds')}</h3>
+            <h3 className="display mt-5 mb-1 text-base">{t('Teil dieser Builds')}</h3>
             {pages.map((page) => (
               <button
                 key={page.key}
@@ -198,16 +198,16 @@ export function Drawer({
             ))}
           </>
         )}
-        <p className="mt-5 text-[11px] text-mute">{t('Beste und schwerste Matchups je Rune: liefert die Quelle nicht.')}</p>
+        <p className="mt-5 text-xs text-mute">{t('Beste und schwerste Matchups je Rune: liefert die Quelle nicht.')}</p>
       </>
     )
   }
 
   return (
-    <aside className="drawer absolute inset-y-0 right-0 z-10 flex w-[330px] flex-col border-l border-line bg-surface shadow-2xl shadow-black/60">
-      <div className="flex items-center justify-between border-b border-line px-4 py-2 text-[11px] text-mute">
+    <aside className="drawer absolute inset-y-0 right-0 z-10 flex w-[330px] flex-col border-l border-line bg-surface [box-shadow:var(--shadow-pop)]">
+      <div className="flex items-center justify-between border-b border-line px-4 py-2 text-xs text-mute">
         <span className="truncate">{builds ? scope : t('Öffne einen Champion für Statistiken')}</span>
-        <button onClick={onClose} className="shrink-0 pl-3 text-[13px] hover:text-bone" aria-label={t('Details schließen')}>
+        <button onClick={onClose} className="shrink-0 pl-3 text-sm hover:text-bone" aria-label={t('Details schließen')}>
           {t('Schließen')}
         </button>
       </div>

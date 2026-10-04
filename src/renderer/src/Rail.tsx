@@ -1,7 +1,7 @@
 import type { Facing } from '../../shared/recommend'
 import type { DraftSlot, StaticData } from '../../shared/types'
 import { ROLE_LABELS } from './lib'
-import { ChampionIcon } from './ui'
+import { Checkbox, ChampionIcon } from './ui'
 import { t } from '../../shared/i18n'
 
 const FACING: [flag: keyof Facing, label: string, effect: string][] = [
@@ -25,33 +25,33 @@ function Team({
 }) {
   return (
     <div>
-      <h3 className="mb-1.5 text-[11px] text-mute">{title}</h3>
+      <h3 className="mb-2 text-xs font-medium text-mute">{title}</h3>
       <div className="space-y-0.5">
         {slots.map((slot, index) => {
           const champion = slot.championId !== null ? data.champions[slot.championId] : undefined
           const content = (
             <>
               <ChampionIcon id={slot.championId} data={data} size={24} />
-              <span className={`min-w-0 flex-1 truncate ${champion ? '' : 'text-mute/60'}`}>
+              <span className={`min-w-0 flex-1 truncate ${champion ? '' : 'text-mute'}`}>
                 {champion?.name ?? t('noch offen')}
               </span>
-              <span className="text-[11px] text-mute">
+              <span className="text-xs text-mute">
                 {slot.isMe ? t('du') : slot.championId === activeId ? 'Lane' : slot.role ? ROLE_LABELS[slot.role] : ''}
               </span>
             </>
           )
-          const base = 'flex w-full items-center gap-2 rounded px-1.5 py-1 text-left'
+          const base = 'row -mx-2 flex w-[calc(100%+16px)] items-center gap-2 px-2 py-1 text-left'
           return onPick && champion ? (
             <button
               key={index}
               onClick={() => onPick(slot.championId!)}
               title={t('Als Lane-Gegner setzen')}
-              className={`${base} hover:bg-raised ${slot.championId === activeId ? 'bg-raised' : ''}`}
+              className={`${base} ${slot.championId === activeId ? 'bg-raised' : ''}`}
             >
               {content}
             </button>
           ) : (
-            <div key={index} className={`${base} ${slot.isMe ? 'bg-raised' : ''}`}>
+            <div key={index} className={`${base} hover:bg-transparent ${slot.isMe ? 'bg-raised hover:bg-raised' : ''}`}>
               {content}
             </div>
           )
@@ -79,7 +79,7 @@ export function Rail(props: RailProps) {
   const opponent = opponentId !== null ? data.champions[opponentId] : undefined
 
   return (
-    <aside className="flex w-[232px] shrink-0 flex-col gap-5 overflow-y-auto border-r border-line px-3.5 py-4">
+    <aside className="flex w-[212px] shrink-0 flex-col gap-6 overflow-y-auto border-r border-line p-4">
       {inDraft ? (
         <>
           <Team title={t('Dein Team')} slots={myTeam} data={data} />
@@ -87,41 +87,35 @@ export function Rail(props: RailProps) {
         </>
       ) : (
         <div>
-          <h3 className="mb-1.5 text-[11px] text-mute">{t('Lane-Gegner')}</h3>
+          <h3 className="mb-2 text-xs font-medium text-mute">{t('Lane-Gegner')}</h3>
           {opponent ? (
-            <div className="flex items-center gap-2 rounded bg-raised px-1.5 py-1">
+            <div className="-mx-2 flex items-center gap-2 rounded-control bg-raised px-2 py-1">
               <ChampionIcon id={opponentId} data={data} size={24} />
               <span className="min-w-0 flex-1 truncate">{opponent.name}</span>
-              <button onClick={() => onOpponent(null)} className="text-[11px] text-mute hover:text-bone">
+              <button onClick={() => onOpponent(null)} className="link text-xs">
                 {t('entfernen')}
               </button>
             </div>
           ) : (
-            <p className="text-[12px] text-mute">{t('Keiner gewählt – die Analyse summiert die häufigsten Matchups.')}</p>
+            <p className="text-mute">{t('Keiner gewählt – die Analyse summiert die häufigsten Matchups.')}</p>
           )}
         </div>
       )}
 
       <div>
-        <h3 className="mb-1.5 text-[11px] text-mute">{t('Was steht dir gegenüber?')}</h3>
+        <h3 className="mb-2 text-xs font-medium text-mute">{t('Was steht dir gegenüber?')}</h3>
         {FACING.map(([flag, label, effect]) => (
-          <label key={flag} className="flex cursor-pointer items-start gap-2 rounded px-1.5 py-1 hover:bg-raised">
-            <input
-              type="checkbox"
-              checked={facing[flag]}
-              onChange={(event) => onFacing(flag, event.target.checked)}
-              className="mt-0.5 accent-[#d6ad62]"
-            />
-            <span>
+          <div key={flag} className="py-1">
+            <Checkbox checked={facing[flag]} onChange={(checked) => onFacing(flag, checked)}>
               {label}
-              <span className="block text-[11px] text-mute">
+              <span className="block text-xs text-mute">
                 {effect}
                 {derived[flag] && t(' · aus dem Draft')}
               </span>
-            </span>
-          </label>
+            </Checkbox>
+          </div>
         ))}
-        <p className="mt-1.5 px-1.5 text-[11px] text-mute">
+        <p className="mt-3 text-xs text-mute">
           {t('Für Poke, Engage oder Scaling gibt es keine Item-Daten, aus denen sich eine Anpassung belegen ließe.')}
         </p>
       </div>

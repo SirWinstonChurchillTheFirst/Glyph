@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { ChevronRight } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { interval, verdict, winRate, type TeamAnalysis } from '../../shared/analysis'
 import type { Recommendation } from '../../shared/recommend'
 import type { BuildSet, ChampionProfile, ItemSetStat, Role, StaticData } from '../../shared/types'
 import { ImportButton } from './ImportButton'
 import { ROLE_LABELS, count, pageName, percent, runesAsText } from './lib'
-import { RuneLine, RuneTree } from './RuneTree'
+import { RuneLine, RuneTree, Sigil } from './RuneTree'
 import { ChampionIcon, ItemIcon, Notice, Panel, PickBar, RuneIcon, Why, WinBar, type Detail } from './ui'
 import { t } from '../../shared/i18n'
 
@@ -54,7 +55,7 @@ function Level({ analysis, id }: { analysis: TeamAnalysis; id: string }) {
             <span key={step} className={`h-2.5 w-1.5 rounded-[1px] ${step <= filled ? 'bg-bone/80' : 'bg-line'}`} />
           ))}
         </span>
-        <span className="text-[12px] text-mute">{label}</span>
+        <span className="text-xs text-mute">{label}</span>
       </span>
     </td>
   )
@@ -65,9 +66,9 @@ function Damage({ analysis }: { analysis: TeamAnalysis }) {
     <td className="py-1.5 pr-4" title={`AD: ${analysis.ad.join(', ') || '–'} · AP: ${analysis.ap.join(', ') || '–'}`}>
       <span className="flex h-1.5 overflow-hidden rounded-full bg-line">
         <span className="bg-down/80" style={{ flex: analysis.ad.length }} />
-        <span className="bg-[#7f9cf0]" style={{ flex: analysis.ap.length }} />
+        <span className="bg-magic" style={{ flex: analysis.ap.length }} />
       </span>
-      <span className="mt-1 block text-[12px]">
+      <span className="mt-1 block text-xs">
         {analysis.ad.length}{t(' AD · ')}{analysis.ap.length}{t(' AP')}
       </span>
     </td>
@@ -79,7 +80,7 @@ function TeamCompare({ allies, enemies }: { allies: TeamAnalysis; enemies: TeamA
   return (
     <table className="w-full">
       <thead>
-        <tr className="text-left text-[11px] text-mute">
+        <tr className="text-left text-xs text-mute">
           <th className="font-normal" />
           <th className="pb-1 font-normal">{t('Gegner · ')}{enemies.known}{t(' erkannt')}</th>
           <th className="pb-1 font-normal">{t('Dein Team · ')}{allies.known}{t(' erkannt')}</th>
@@ -125,13 +126,145 @@ function scopeText(view: View): string {
 /** Shown above the quick overall data while the detailed set loads. */
 function MoreLoading({ what }: { what: string }) {
   return (
-    <p className="loading rounded-lg border border-line bg-surface px-3 py-2 text-[12px] text-mute">
+    <p className="loading rounded-control border border-line bg-surface px-3 py-2 text-xs text-mute">
       {what}{t(' werden aus den häufigsten Matchups geladen …')}
     </p>
   )
 }
 
 // ---------- Entscheidung ----------
+
+/** The purchase path. Every item carries its name; clicking one opens the reasons for it. */
+function ItemPath({ view }: { view: View }) {
+  const { recommendation: rec, builds, data, onOpen } = view
+  const choices = [...rec.path, ...(rec.boots ? [rec.boots] : [])]
+  // Starts on the item the situation changed or confirmed, if there is one.
+  const preset = choices.find((choice) => choice.adapted || choice.fits)?.pick.ids[0] ?? null
+  const [picked, setPicked] = useState<number | null | undefined>(undefined)
+  const openId = picked === undefined ? preset : picked
+  const open = choices.find((choice) => choice.pick.ids[0] === openId)
+  // Keeps the last reasons in place while the strip closes.
+  const shown = useRef(open)
+  if (open) shown.current = open
+
+  const figure = 'display text-xs text-mute'
+  const caption = 'line-clamp-2 min-h-[2.5em] text-center text-xs leading-tight'
+  const arrow = <ChevronRight size={16} className="mt-[46px] shrink-0 text-mute" aria-hidden />
+
+  const step = (label: string, choice: (typeof choices)[number]) => {
+    const id = choice.pick.ids[0]
+    const isOpen = id === openId
+    return (
+      <button
+        onClick={() => setPicked(isOpen ? null : id)}
+        aria-expanded={isOpen}
+        className={`row flex w-[94px] flex-col items-center gap-1.5 px-1.5 py-2 ${isOpen ? 'bg-raised' : ''}`}
+      >
+        <span className="text-xs text-mute">{label}</span>
+        <span className={`rounded-md ${choice.adapted ? 'ring-2 ring-gold ring-offset-2 ring-offset-surface' : ''}`}>
+          <ItemIcon id={id} data={data} size={44} />
+        </span>
+        <span className={`${caption} ${choice.adapted ? 'text-gold' : ''}`}>{itemName(id, data)}</span>
+        <span className={figure}>{percent(choice.pick.pickRate, 0)}</span>
+      </button>
+    )
+  }
+
+  return (
+    <Panel
+      className="col-span-12"
+      title={t('Item-Pfad')}
+      aside={builds.quick ? t('Anteil der Spiele mit diesem Item · Klick für Details') : t('Anteil der Spiele je Kauf-Slot · Klick für Details')}
+    >
+      <div className="flex flex-wrap items-start gap-x-1 gap-y-3">
+        {rec.starter && (
+          <div className="flex w-[112px] flex-col items-center gap-1.5 px-1.5 py-2">
+            <span className="text-xs text-mute">Start</span>
+            <span className="flex gap-1">
+              {[...new Set(rec.starter.ids)].map((id) => (
+                <ItemIcon key={id} id={id} data={data} size={44} onOpen={onOpen} />
+              ))}
+            </span>
+            <span className={caption}>{[...new Set(rec.starter.ids)].map((id) => itemName(id, data)).join(' + ')}</span>
+            <span className={figure}>{percent(rec.starter.pickRate, 0)}</span>
+          </div>
+        )}
+        {rec.path.map((choice, index) => (
+          <div key={choice.pick.ids[0]} className="flex items-start gap-1">
+            {(index > 0 || rec.starter) && arrow}
+            {step(t`${index + 1}. Item`, choice)}
+          </div>
+        ))}
+        {rec.boots && (
+          <div className="flex items-start gap-1">
+            <span className="mx-2 mt-7 h-[68px] w-px bg-line" />
+            {step(t('Stiefel'), rec.boots)}
+          </div>
+        )}
+      </div>
+
+      <div className="reveal" data-open={open !== undefined}>
+        <div>
+          {shown.current && (
+            <div className="mt-3 flex items-start justify-between gap-6 rounded-control border border-line bg-ink/50 p-4">
+              <ul className="space-y-1.5 select-text">
+                {shown.current.reasons.map((reason) => (
+                  <li key={reason} className="flex gap-2">
+                    <span className={`mt-[8px] size-1 shrink-0 rounded-full ${shown.current!.adapted ? 'bg-gold' : 'bg-mute'}`} />
+                    {reason}
+                  </li>
+                ))}
+              </ul>
+              <button className="link shrink-0 text-xs" onClick={() => onOpen({ kind: 'item', id: shown.current!.pick.ids[0] })}>
+                {t('Nutzung')}
+                <ChevronRight size={13} aria-hidden />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </Panel>
+  )
+}
+
+/** Win rate per game-length bucket as bars from a visible 50 % baseline, each with its value. */
+function GameLengthChart({ buckets }: { buckets: ChampionProfile['gameLengths'] }) {
+  const HALF = 40
+  const peak = Math.max(0.02, ...buckets.map((bucket) => Math.abs(bucket.winRate - 0.5)))
+  return (
+    <div className="flex flex-1 flex-col justify-center">
+      <div className="relative flex h-[128px] gap-3 pl-10">
+        <span className="display absolute top-1/2 left-0 -translate-y-1/2 text-xs text-mute">{percent(0.5, 0)}</span>
+        <span className="absolute top-1/2 right-0 left-10 h-px bg-mute" />
+        {buckets.map((bucket) => {
+          const up = bucket.winRate >= 0.5
+          const height = Math.max(3, (Math.abs(bucket.winRate - 0.5) / peak) * HALF)
+          return (
+            <div key={bucket.from} className="relative flex-1">
+              <span
+                className={`absolute left-1/2 w-[58%] -translate-x-1/2 ${up ? 'bottom-1/2 rounded-t-[3px] bg-up' : 'top-1/2 rounded-b-[3px] bg-down'}`}
+                style={{ height }}
+              />
+              <span
+                className={`display absolute left-1/2 -translate-x-1/2 text-xs ${up ? 'text-up' : 'text-down'}`}
+                style={up ? { bottom: `calc(50% + ${height + 4}px)` } : { top: `calc(50% + ${height + 4}px)` }}
+              >
+                {percent(bucket.winRate)}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <div className="flex gap-3 pl-10">
+        {buckets.map((bucket) => (
+          <span key={bucket.from} className="flex-1 text-center text-xs text-mute">
+            {LENGTH_LABELS[bucket.from] ?? bucket.from}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export function DecisionView(view: View) {
   const { data, recommendation: rec, builds, profile, opponentId, championId, role, onOpen } = view
@@ -140,115 +273,103 @@ export function DecisionView(view: View) {
   const title = `${champion?.name} ${ROLE_LABELS[role]}`
   const matchup = opponentId !== null ? profile?.matchups.find((entry) => entry.opponentId === opponentId) : undefined
   const opponent = opponentId !== null ? data.champions[opponentId] : undefined
+  const fact = 'flex items-center justify-between gap-4'
 
-  const step = (label: string, ids: number[], stat?: ItemSetStat, adapted?: boolean) => (
-    <div className="flex flex-col items-center gap-1.5">
-      <span className="text-[11px] text-mute">{label}</span>
-      <div className={`flex gap-1 rounded-md p-1 ${adapted ? 'bg-gold/15 ring-1 ring-gold/60' : ''}`}>
-        {[...new Set(ids)].map((id) => (
-          <ItemIcon key={id} id={id} data={data} size={40} onOpen={onOpen} />
-        ))}
-      </div>
-      <span className="display text-[12px] text-mute">{stat ? percent(stat.pickRate, 0) : ''}</span>
-    </div>
+  // With a full draft the right column carries the team comparison and would tower over the left
+  // one, so the chart moves across. Either way the last card of each column takes up the slack.
+  const chartLeft = Boolean(view.draft && view.draft.enemies.known > 0)
+  const chart = profile && profile.gameLengths.length > 0 && (
+    <Panel className="flex flex-1 flex-col" title={t('Winrate nach Spieldauer')} aside={t('Champion gesamt, Minuten')}>
+      <GameLengthChart buckets={profile.gameLengths} />
+    </Panel>
   )
-  const arrow = <span className="mt-8 text-mute/50">›</span>
 
   return (
-    <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-4">
-      <div className="space-y-4">
-        <section className="rounded-md border border-line border-l-gold bg-surface p-4 [border-left-width:3px]">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h2 className="text-[12px] text-gold">{t('GLYPH empfiehlt')}</h2>
-            <span className="text-[11px] text-mute">{scopeText(view)}</span>
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2">
-            <span className="display text-[26px] leading-none">{pageName(page.pick, data)}</span>
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-[11px] ${
-                page.strength === 'thin' ? 'bg-raised text-mute' : 'bg-gold/15 text-gold'
-              }`}
-            >
-              {STRENGTH[page.strength]}
-            </span>
-            <WinBar stat={page.pick} />
-          </div>
-          <div className="mt-4">
-            <RuneLine variant={page.variant} data={data} onOpen={onOpen} />
-          </div>
-          <div className="mt-4">
-            <ImportButton
-              // Resets the button whenever another page is shown.
-              key={`${championId}-${role}-${page.pick.key}`}
-              request={{
-                name: `Glyph · ${title}`,
-                primaryStyle: page.pick.primaryStyle,
-                subStyle: page.pick.subStyle,
-                perks: page.variant.perks,
-                shards: page.variant.shards
-              }}
-              text={runesAsText(title, page.pick, page.variant, data)}
-              connected={view.connected}
-              note={view.importNote}
-              spells={rec.spells}
-              canSpells={view.canSpells}
-              data={data}
-            />
-          </div>
-          <div className="mt-4 border-t border-line pt-3">
-            <Why reasons={page.reasons} open />
-          </div>
-        </section>
+    <div className="grid grid-cols-12 items-stretch gap-4">
+      {/* The recommendation, with the build's sigil as its emblem. */}
+      <div className="col-span-7 flex flex-col gap-4">
+      <section className={`panel flex flex-col border-l-[3px] border-l-gold p-5 ${chartLeft && chart ? '' : 'flex-1'}`}>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 className="text-xs font-medium text-gold">{t('GLYPH empfiehlt')}</h2>
+          <span className="text-xs text-mute">{scopeText(view)}</span>
+        </div>
 
-        <Panel
-          title={t('Item-Pfad')}
-          aside={builds.quick ? t('Anteil der Spiele mit diesem Item · Klick für Details') : t('Anteil der Spiele je Kauf-Slot · Klick für Details')}
-        >
-          <div className="flex flex-wrap items-start gap-x-3 gap-y-4">
-            {rec.starter && step('Start', rec.starter.ids, rec.starter)}
-            {rec.path.map((choice, index) => (
-              <div key={choice.pick.ids[0]} className="flex items-start gap-3">
-                {(index > 0 || rec.starter) && arrow}
-                {step(t`${index + 1}. Item`, choice.pick.ids, choice.pick, choice.adapted)}
-              </div>
-            ))}
-            {rec.boots && (
-              <div className="ml-auto border-l border-line pl-4">
-                {step(t('Stiefel'), rec.boots.pick.ids, rec.boots.pick, rec.boots.adapted)}
-              </div>
-            )}
+        <div className="mt-4 flex gap-5">
+          <div className="flex size-[148px] shrink-0 items-center justify-center rounded-card border border-line bg-ink">
+            <Sigil page={page.pick} variant={page.variant} data={data} size={132} />
           </div>
-          <div className="mt-4 space-y-2 border-t border-line pt-3">
-            {[...rec.path, ...(rec.boots ? [rec.boots] : [])].map((choice) => (
-              <div key={choice.pick.ids[0]} className="grid grid-cols-[150px_1fr] gap-3">
-                <span className={choice.adapted ? 'text-gold' : ''}>{itemName(choice.pick.ids[0], data)}</span>
-                <Why reasons={choice.reasons} open={choice.adapted || choice.fits} quiet={!choice.adapted} />
+          <div className="min-w-0 flex-1">
+            <div className="display text-2xl leading-tight font-semibold">{pageName(page.pick, data)}</div>
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  page.strength === 'thin' ? 'bg-raised text-mute' : 'bg-gold/15 text-gold'
+                }`}
+              >
+                {STRENGTH[page.strength]}
+              </span>
+              <WinBar stat={page.pick} />
+            </div>
+            <div className="mt-4">
+              <RuneLine variant={page.variant} data={data} onOpen={onOpen} />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <ImportButton
+            // Resets the button whenever another page is shown.
+            key={`${championId}-${role}-${page.pick.key}`}
+            request={{
+              name: `Glyph · ${title}`,
+              primaryStyle: page.pick.primaryStyle,
+              subStyle: page.pick.subStyle,
+              perks: page.variant.perks,
+              shards: page.variant.shards
+            }}
+            text={runesAsText(title, page.pick, page.variant, data)}
+            connected={view.connected}
+            note={view.importNote}
+            spells={rec.spells}
+            canSpells={view.canSpells}
+            data={data}
+          />
+        </div>
+
+        <div className="mt-5 border-t border-line pt-4">
+          <Why reasons={page.reasons} open />
+        </div>
+      </section>
+
+      {rec.skill && (
+        <Panel title={t('Skill-Reihenfolge')} aside={t`${percent(rec.skill.pickRate, 0)} der Spiele`}>
+          <div className="flex flex-wrap gap-1">
+            {rec.skill.order.map((skill, index) => (
+              <div key={index} className="w-8 text-center">
+                <div
+                  className={`display rounded-md py-1.5 text-sm font-semibold ${
+                    skill === 'R' ? 'bg-bone text-ink' : 'bg-raised'
+                  }`}
+                >
+                  {skill}
+                </div>
+                <div className="mt-1 text-2xs text-mute">{index + 1}</div>
               </div>
             ))}
           </div>
         </Panel>
-
-        {rec.skill && (
-          <Panel title={t('Skill-Reihenfolge')} aside={t`${percent(rec.skill.pickRate, 0)} der Spiele`}>
-            <div className="flex gap-[3px]">
-              {rec.skill.order.map((skill, index) => (
-                <div key={index} className="w-7 text-center">
-                  <div className={`display rounded-sm py-1 ${skill === 'R' ? 'bg-bone text-ink' : 'bg-raised'}`}>{skill}</div>
-                  <div className="mt-1 text-[10px] text-mute">{index + 1}</div>
-                </div>
-              ))}
-            </div>
-          </Panel>
-        )}
+      )}
+      {chartLeft && chart}
       </div>
 
-      <div className="space-y-4">
+      {/* The situation: stretches to the height of the recommendation, the chart takes the rest. */}
+      <div className="col-span-5 flex flex-col gap-4">
         <Panel title={t('Was du in diesem Match änderst')}>
           {rec.changes.length > 0 ? (
             <ul className="space-y-1.5">
               {rec.changes.map((change) => (
                 <li key={change} className="flex gap-2 text-gold">
-                  <span className="mt-[7px] size-1 shrink-0 rounded-full bg-gold" />
+                  <span className="mt-[8px] size-1 shrink-0 rounded-full bg-gold" />
                   {change}
                 </li>
               ))}
@@ -276,37 +397,37 @@ export function DecisionView(view: View) {
         )}
 
         {opponent ? (
-          <Panel title={t`Lane gegen ${opponent.name}`} aside={t("Einschätzung von OP.GG")}>
+          <Panel className={chartLeft ? 'flex-1' : ''} title={t`Lane gegen ${opponent.name}`} aside={t("Einschätzung von OP.GG")}>
             <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
+              <div className={fact}>
                 <span className="text-mute">{t('Deine Winrate')}</span>
-                {matchup ? <WinBar stat={matchup} /> : <span className="text-mute">{t('nicht verfügbar')}</span>}
+                {matchup ? <WinBar stat={matchup} compact /> : <span className="text-mute">{t('nicht verfügbar')}</span>}
               </div>
               {builds.lane?.advantage && (
-                <div className="flex justify-between">
+                <div className={fact}>
                   <span className="text-mute">{t('Vorteil in der Lane')}</span>
                   <span>{SIDE[builds.lane.advantage]}</span>
                 </div>
               )}
               {builds.lane?.soloKill && (
-                <div className="flex justify-between">
+                <div className={fact}>
                   <span className="text-mute">{t('Vorteil bei Solo-Kills')}</span>
                   <span>{SIDE[builds.lane.soloKill]}</span>
                 </div>
               )}
               {builds.lane?.playStyle && (
-                <div className="flex justify-between">
+                <div className={fact}>
                   <span className="text-mute">{t('Empfohlene Spielweise')}</span>
                   <span>{PLAY_STYLES[builds.lane.playStyle.toLowerCase()] ?? builds.lane.playStyle}</span>
                 </div>
               )}
               {builds.lane?.tip && (
-                <p className="border-t border-line pt-2.5 text-[12px] text-bone/85 select-text">{builds.lane.tip}</p>
+                <p className="border-t border-line pt-3 text-bone select-text">{builds.lane.tip}</p>
               )}
             </div>
           </Panel>
         ) : (
-          <Panel title={t('Kein Lane-Gegner gewählt')}>
+          <Panel className={chartLeft ? 'flex-1' : ''} title={t('Kein Lane-Gegner gewählt')}>
             <p className="text-mute">
               {builds.quick
                 ? t('Das ist der meistgespielte Build des Champions über alle Gegner.')
@@ -316,30 +437,14 @@ export function DecisionView(view: View) {
           </Panel>
         )}
 
-        {profile && profile.gameLengths.length > 0 && (
-          <Panel title={t('Winrate nach Spieldauer')} aside={t("Champion gesamt, Minuten")}>
-            <div className="flex items-stretch gap-2">
-              {profile.gameLengths.map((bucket) => {
-                const delta = bucket.winRate - 0.5
-                const size = Math.min(100, (Math.abs(delta) / 0.06) * 100)
-                return (
-                  <div key={bucket.from} className="flex-1 text-center">
-                    <div className="relative h-16">
-                      <span className="absolute inset-x-0 top-1/2 h-px bg-mute/50" />
-                      <span
-                        className={`absolute inset-x-2 rounded-sm ${delta >= 0 ? 'bottom-1/2 bg-up' : 'top-1/2 bg-down'}`}
-                        style={{ height: `${Math.max(2, size / 2)}%` }}
-                      />
-                    </div>
-                    <div className="display text-[12px]">{percent(bucket.winRate)}</div>
-                    <div className="text-[11px] text-mute">{LENGTH_LABELS[bucket.from] ?? bucket.from}</div>
-                  </div>
-                )
-              })}
-            </div>
-          </Panel>
-        )}
+        {!chartLeft && chart}
       </div>
+
+      <ItemPath
+        // Another build or situation starts with its own item opened.
+        key={[...rec.path, ...(rec.boots ? [rec.boots] : [])].map((choice) => choice.pick.ids[0]).join('-')}
+        view={view}
+      />
     </div>
   )
 }
@@ -372,22 +477,25 @@ export function BuildsView(view: View) {
                 onPage(entry.key)
                 setVariantIndex(0)
               }}
-              className={`rounded-md border p-3 text-left ${
-                active ? 'border-bone/60 bg-raised' : 'border-line bg-surface hover:border-mute'
+              className={`rounded-card border p-4 text-left transition-colors [box-shadow:var(--shadow-card)] ${
+                active ? 'border-gold bg-raised' : 'border-line bg-surface hover:border-mute'
               }`}
             >
               <div className="flex items-center gap-2.5">
                 <RuneIcon id={entry.keystone} data={data} size={34} />
                 <div className="min-w-0">
-                  <div className="display truncate text-[15px]">{data.runes[entry.keystone]?.name}</div>
-                  <div className="truncate text-[11px] text-mute">+ {data.styles[entry.subStyle]?.name}</div>
+                  <div className="display truncate text-base">{data.runes[entry.keystone]?.name}</div>
+                  <div className="truncate text-xs text-mute">+ {data.styles[entry.subStyle]?.name}</div>
                 </div>
-                {recommended && <span className="ml-auto size-2 shrink-0 rounded-full bg-gold" title={t('Von GLYPH empfohlen')} />}
+                <span className="ml-auto flex shrink-0 items-center gap-2">
+                  {recommended && <span className="size-2 rounded-full bg-gold" title={t('Von GLYPH empfohlen')} />}
+                  {entry.variants[0] && <Sigil page={entry} variant={entry.variants[0]} data={data} size={40} />}
+                </span>
               </div>
               <div className="mt-3">
                 <WinBar stat={entry} compact />
               </div>
-              <div className="mt-1.5 flex items-center justify-between text-[11px] text-mute">
+              <div className="mt-1.5 flex items-center justify-between text-xs text-mute">
                 <span>{count(entry.games)}{t(' Spiele')}</span>
                 <PickBar stat={entry} />
               </div>
@@ -401,7 +509,7 @@ export function BuildsView(view: View) {
           <div className="grid grid-cols-[minmax(0,1fr)_260px] gap-6">
             <RuneTree page={page} variant={variant} usage={builds.runeUse} data={data} onOpen={onOpen} />
             <div>
-              <div className="mb-2 text-[12px] text-mute">{t('Varianten dieser Seite')}</div>
+              <div className="mb-2 text-xs text-mute">{t('Varianten dieser Seite')}</div>
               <div className="space-y-1">
                 {page.variants.slice(0, 5).map((entry, index) => (
                   <button
@@ -416,7 +524,7 @@ export function BuildsView(view: View) {
                         <RuneIcon key={id} id={id} data={data} size={18} />
                       ))}
                     </span>
-                    <span className="display text-[12px] text-mute">
+                    <span className="display text-xs text-mute">
                       {percent(winRate(entry))} · {count(entry.games)}
                     </span>
                   </button>
@@ -460,7 +568,7 @@ export function BuildsView(view: View) {
               ))}
             </tbody>
           </table>
-          <p className="mt-3 text-[11px] text-mute">
+          <p className="mt-3 text-xs text-mute">
             {t('Früh-, Mittel- und Spätspiel je Build liefert die Quelle nicht. Die Spieldauer-Kurve unter „Entscheidung“ gilt für den Champion insgesamt.')}
           </p>
         </Panel>
@@ -484,7 +592,7 @@ export function BuildsView(view: View) {
                 ))}
               </ol>
             )}
-            <p className="mt-3 text-[11px] text-mute">
+            <p className="mt-3 text-xs text-mute">
               {t('Sortiert nach dem unteren Rand des 95-%-Bereichs, damit kleine Stichproben nicht vorne landen.')}
             </p>
           </Panel>
@@ -493,7 +601,7 @@ export function BuildsView(view: View) {
             {builds.perOpponent.length === 0 && <p className="text-mute">{t('Kommt mit den Matchup-Daten.')}</p>}
             <table className={builds.perOpponent.length === 0 ? 'hidden' : 'w-full'}>
               <thead>
-                <tr className="text-[11px] text-mute">
+                <tr className="text-xs text-mute">
                   <th />
                   {columns.map((column) => (
                     <th key={column.key} className="pb-1.5 font-normal" title={pageName(column, data)}>
@@ -544,7 +652,7 @@ export function BuildsView(view: View) {
                 })}
               </tbody>
             </table>
-            <p className="mt-3 text-[11px] text-mute">{t('Goldener Punkt: bester Build gegen diesen Gegner. Klick auf den Gegner öffnet das Matchup.')}</p>
+            <p className="mt-3 text-xs text-mute">{t('Goldener Punkt: bester Build gegen diesen Gegner. Klick auf den Gegner öffnet das Matchup.')}</p>
           </Panel>
         )}
       </div>
@@ -594,7 +702,7 @@ export function ItemsView(view: View) {
   return (
     <div className="space-y-4">
       {view.loadingMore && <MoreLoading what={t("Die Optionen je Kauf-Slot")} />}
-      <p className="text-[12px] text-mute">
+      <p className="text-xs text-mute">
         {scopeText(view)}{t(' · Gold = im empfohlenen Pfad · Spätere Slots zeigen von Natur aus höhere Winrates, weil nur längere, oft gewonnene Spiele sie erreichen – vergleiche deshalb innerhalb eines Slots. Die durchschnittliche Kaufzeit liefert die Quelle nicht.')}
       </p>
       <div className="grid grid-cols-2 gap-4">
@@ -658,7 +766,7 @@ export function MatchupsView(view: View) {
     >
       <ChampionIcon id={entry.opponentId} data={data} size={24} />
       <span className="min-w-0 flex-1 truncate">{data.champions[entry.opponentId]?.name ?? entry.opponentId}</span>
-      <span className="display text-[12px] text-mute">{count(entry.games)}</span>
+      <span className="display text-xs text-mute">{count(entry.games)}</span>
       <WinBar stat={entry} compact />
     </button>
   )
@@ -686,7 +794,7 @@ export function MatchupsView(view: View) {
         }
       >
         <div className="grid grid-cols-2 gap-x-6">{all.map(row)}</div>
-        <p className="mt-3 text-[11px] text-mute">
+        <p className="mt-3 text-xs text-mute">
           {t('Klick auf einen Gegner stellt die ganze Analyse auf dieses Matchup um. Phasen-Daten (Lane, Mid-Game, Late-Game) je Matchup liefert die Quelle nicht.')}
         </p>
       </Panel>

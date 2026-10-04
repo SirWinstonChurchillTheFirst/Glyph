@@ -1,8 +1,9 @@
-import { AlertCircle, Check, Download, Loader2 } from 'lucide-react'
+import { AlertCircle, Check, Copy, Download, Info, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import type { FlashKey, ImportRequest, ItemSetStat, StaticData } from '../../shared/types'
 import { percent, spellIconUrl } from './lib'
 import { t } from '../../shared/i18n'
+import { Checkbox, Segment } from './ui'
 
 type Phase =
   | { step: 'idle' | 'busy' | 'copied' }
@@ -100,12 +101,12 @@ export function ImportButton({ request, text, connected, note, spells, canSpells
   if (phase.step === 'confirm') {
     return (
       <div className="space-y-2">
-        <p className="text-[12px] text-mute">{t('Keine freie Runenseite. „')}{phase.page.name}{t('“ überschreiben?')}</p>
+        <p className="text-xs text-mute">{t('Keine freie Runenseite. „')}{phase.page.name}{t('“ überschreiben?')}</p>
         <div className="flex gap-2">
-          <button className="primary h-9 px-5" onClick={() => void run(phase.page.id)}>
+          <button className="primary h-10 px-5" onClick={() => void run(phase.page.id)}>
             {t('Überschreiben')}
           </button>
-          <button className="card h-9 px-4 text-mute hover:text-bone" onClick={() => setPhase({ step: 'idle' })}>
+          <button className="card h-10 px-4 text-mute hover:text-bone" onClick={() => setPhase({ step: 'idle' })}>
             {t('Abbrechen')}
           </button>
         </div>
@@ -141,81 +142,75 @@ export function ImportButton({ request, text, connected, note, spells, canSpells
               ? t('Zauber lassen sich nur im Champion Select setzen – importiert werden die Runen.')
               : ''
 
-  const option = 'flex cursor-pointer items-center gap-1.5 text-[12px]'
   const hasFlash = spells?.ids.includes(FLASH) ?? false
 
   return (
-    <div className="space-y-2.5">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <label className={option}>
-          <input
-            type="checkbox"
-            checked={want.runes}
-            onChange={(event) => choose({ ...want, runes: event.target.checked })}
-            className="accent-[#d6ad62]"
-          />
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <Checkbox checked={want.runes} onChange={(runes) => choose({ ...want, runes })}>
           {t('Runen')}
-        </label>
+        </Checkbox>
         {spells && (
-          <label className={option} title={t`${percent(spells.pickRate, 0)} der Spiele`}>
-            <input
-              type="checkbox"
-              checked={want.spells}
-              onChange={(event) => choose({ ...want, spells: event.target.checked })}
-              className="accent-[#d6ad62]"
-            />
-            {t('Beschwörerzauber')}
-            <span className="ml-0.5 flex gap-1">
-              {spells.ids.map((id) => (
-                <img
-                  key={id}
-                  src={data.spells[id] ? spellIconUrl(data.patch, data.spells[id].icon) : undefined}
-                  alt={data.spells[id]?.name ?? String(id)}
-                  title={data.spells[id]?.name}
-                  className="size-5 rounded-sm"
-                />
-              ))}
+          <Checkbox
+            checked={want.spells}
+            onChange={(checked) => choose({ ...want, spells: checked })}
+            title={t`${percent(spells.pickRate, 0)} der Spiele`}
+          >
+            <span className="flex items-center gap-2.5">
+              {t('Beschwörerzauber')}
+              <span className="flex gap-1">
+                {spells.ids.map((id) => (
+                  <img
+                    key={id}
+                    src={data.spells[id] ? spellIconUrl(data.patch, data.spells[id].icon) : undefined}
+                    alt={data.spells[id]?.name ?? String(id)}
+                    title={data.spells[id]?.name}
+                    className="size-[22px] rounded-md"
+                  />
+                ))}
+              </span>
             </span>
-          </label>
+          </Checkbox>
         )}
         {spells && want.spells && hasFlash && (
-          <span className="flex items-center gap-1 text-[12px] text-mute">
+          <span className="flex items-center gap-2 text-xs text-mute">
             {t('Flash auf')}
-            {(['auto', 'D', 'F'] as const).map((key) => (
-              <button
-                key={key}
-                onClick={() => {
-                  setFlashKey(key)
-                  save(FLASH_KEY, key)
-                }}
-                title={key === 'auto' ? t('Flash bleibt auf der Taste, auf der er gerade liegt') : undefined}
-                className={`rounded px-1.5 py-0.5 transition-colors ${
-                  flashKey === key ? 'bg-raised text-bone' : 'hover:text-bone'
-                }`}
-              >
-                {key === 'auto' ? t('wie bisher') : key}
-              </button>
-            ))}
+            <Segment
+              label={t('Flash auf')}
+              value={flashKey}
+              onChange={(key) => {
+                setFlashKey(key)
+                save(FLASH_KEY, key)
+              }}
+              options={[
+                { value: 'auto', label: t('wie bisher'), title: t('Flash bleibt auf der Taste, auf der er gerade liegt') },
+                { value: 'D', label: 'D' },
+                { value: 'F', label: 'F' }
+              ]}
+            />
           </span>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <button
-          className="primary h-9 px-5"
+          className="primary h-10 px-5"
           disabled={(!doRunes && !doSpells) || phase.step === 'busy'}
           onClick={() => void run()}
         >
           {icon}
           {label}
         </button>
-        <button
-          className="text-[12px] text-mute underline-offset-2 hover:text-bone hover:underline"
-          onClick={() => void copy()}
-        >
+        <button className="link text-xs" onClick={() => void copy()}>
+          <Copy size={13} aria-hidden />
           {t('Als Text kopieren')}
         </button>
-        <span className={`text-[12px] ${phase.step === 'error' ? 'text-down' : 'text-mute'}`}>{hint}</span>
+        {hint && (
+          <span className={`status text-xs ${phase.step === 'error' ? 'text-down' : ''}`}>
+            {phase.step === 'error' ? <AlertCircle size={13} aria-hidden /> : <Info size={13} aria-hidden />}
+            {hint}
+          </span>
+        )}
       </div>
     </div>
   )

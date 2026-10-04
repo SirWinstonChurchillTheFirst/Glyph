@@ -38,29 +38,29 @@ export function ChampionHeader({ champion, opponentName, roles, role, onRole, st
       />
       <div className="absolute inset-0 bg-linear-to-r from-ink via-ink/85 to-ink/10" />
 
-      <div className="relative flex items-end justify-between gap-6 px-6 pt-4 pb-3">
+      <div className="relative flex items-end justify-between gap-6 px-6 pt-5 pb-3">
         <div>
           <div className="flex items-baseline gap-3">
-            <h1 className="display text-[38px] leading-none">{champion.name}</h1>
-            {opponentName && <span className="display text-[18px] text-mute">{t('gegen ')}{opponentName}</span>}
+            <h1 className="display text-3xl leading-none font-semibold">{champion.name}</h1>
+            {opponentName && <span className="display text-lg text-mute">{t('gegen ')}{opponentName}</span>}
           </div>
           <div className="mt-2.5 flex items-center gap-1">
             {roles.map((option) => (
               <button
                 key={option}
                 onClick={() => onRole(option)}
-                className={`rounded-full px-3 py-0.5 text-[12px] transition-colors ${
+                className={`rounded-full px-3 py-0.5 text-xs transition-colors ${
                   option === role ? 'bg-bone text-ink' : 'text-mute hover:text-bone'
                 }`}
               >
                 {ROLE_LABELS[option]}
               </button>
             ))}
-            {note && <span className="ml-2 text-[11px] text-mute">{note}</span>}
+            {note && <span className="ml-2 text-xs text-mute">{note}</span>}
             {onClose && (
               <button
                 onClick={onClose}
-                className="ml-2 flex items-center gap-1 text-[11px] text-mute transition-colors hover:text-bone"
+                className="ml-2 flex items-center gap-1 text-xs text-mute transition-colors hover:text-bone"
               >
                 <X size={12} />
                 {t('Schließen')}
@@ -70,7 +70,7 @@ export function ChampionHeader({ champion, opponentName, roles, role, onRole, st
         </div>
 
         {stats && stats.games > 0 && (
-          <div className="flex gap-7 rounded-lg border border-white/5 bg-ink/70 px-4 py-2.5 backdrop-blur-sm">
+          <div className="flex gap-8 rounded-card border border-line bg-ink/75 px-5 py-3 backdrop-blur-sm">
             <Figure label={t("Winrate")} value={percent(stats.winRate)} hint={t`${count(stats.games)} Spiele in dieser Rolle`} />
             <Figure label={t("Pickrate")} value={percent(stats.pickRate)} />
             <Figure label={t("Banrate")} value={percent(stats.banRate)} />
@@ -83,13 +83,13 @@ export function ChampionHeader({ champion, opponentName, roles, role, onRole, st
         )}
       </div>
 
-      <nav className="relative flex gap-1 px-5">
+      <nav className="relative flex gap-1 px-4">
         {TABS.map(([id, label]) => (
           <button
             key={id}
             onClick={() => onTab(id)}
-            className={`border-b-2 px-3 py-1.5 transition-colors ${
-              tab === id ? 'border-gold text-bone' : 'border-transparent text-mute hover:text-bone'
+            className={`rounded-t-md border-b-2 px-3 py-2 font-medium transition-colors ${
+              tab === id ? 'border-gold text-bone' : 'border-transparent text-mute hover:border-line hover:text-bone'
             }`}
           >
             {label}

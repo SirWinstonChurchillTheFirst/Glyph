@@ -84,10 +84,10 @@ export function Home({ status, data, recent, launch, onLaunch, onSearch, onChamp
       <div className="mx-auto flex min-h-full max-w-[720px] flex-col justify-center gap-4 px-8 py-8">
         <section className="card flex flex-col items-center px-10 py-10 text-center">
           <Mark size={72} />
-          <h1 className="display mt-5 text-[26px] leading-tight">{title}</h1>
+          <h1 className="display mt-5 text-2xl leading-tight font-semibold">{title}</h1>
           <p className="mt-2 max-w-[420px] text-mute">{text}</p>
           {actions && <div className="mt-6 flex flex-wrap items-center justify-center gap-3">{actions}</div>}
-          {launch.message && status === 'not-running' && <p className="mt-3 text-[12px] text-down">{launch.message}</p>}
+          {launch.message && status === 'not-running' && <p className="mt-3 text-xs text-down">{launch.message}</p>}
         </section>
 
         <div className="grid grid-cols-3 gap-3">
@@ -97,14 +97,14 @@ export function Home({ status, data, recent, launch, onLaunch, onSearch, onChamp
                 <span className="text-gold">{icon}</span>
                 {name}
               </div>
-              <p className="mt-1 text-[12px] text-mute">{description}</p>
+              <p className="mt-1 text-xs text-mute">{description}</p>
             </div>
           ))}
         </div>
 
         {recent.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="mr-1 text-[12px] text-mute">{t('Zuletzt geöffnet')}</span>
+            <span className="mr-1 text-xs text-mute">{t('Zuletzt geöffnet')}</span>
             {recent.map((id) => (
               <button
                 key={id}

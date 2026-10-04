@@ -1,5 +1,5 @@
 // Draws the app icon and writes build/icon.png: `npm run icon`
-// The mark is Glyph's win-rate bar: a range, the 50 % tick and the measured point.
+// The mark is a sigil: the route of a rune page drawn as one line.
 const { app, BrowserWindow } = require('electron')
 const { mkdirSync, writeFileSync } = require('node:fs')
 const path = require('node:path')
@@ -7,12 +7,14 @@ const path = require('node:path')
 const SIZE = 512
 const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#0d1218"/>
-  <rect x="20" y="20" width="472" height="472" rx="96" fill="none" stroke="#1c2730" stroke-width="8"/>
-  <line x1="96" y1="256" x2="416" y2="256" stroke="#2c3a46" stroke-width="14" stroke-linecap="round"/>
-  <line x1="256" y1="150" x2="256" y2="362" stroke="#82909d" stroke-width="14" stroke-linecap="round"/>
-  <rect x="236" y="226" width="150" height="60" rx="30" fill="#d6ad62" opacity="0.38"/>
-  <circle cx="316" cy="256" r="46" fill="#d6ad62"/>
+  <rect width="512" height="512" rx="112" fill="#14121c"/>
+  <rect x="20" y="20" width="472" height="472" rx="96" fill="#1d1a29" stroke="#383250" stroke-width="8"/>
+  <path d="M168 150 L236 330 L344 168 L300 372" fill="none" stroke="#e0b866" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="168" cy="150" r="40" fill="#1d1a29" stroke="#e0b866" stroke-width="24"/>
+  <circle cx="300" cy="372" r="26" fill="#e0b866"/>
+  <circle cx="392" cy="300" r="11" fill="#aaa5c0" opacity="0.6"/>
+  <circle cx="120" cy="330" r="11" fill="#aaa5c0" opacity="0.6"/>
+  <circle cx="392" cy="372" r="11" fill="#aaa5c0" opacity="0.6"/>
 </svg>`
 
 app.disableHardwareAcceleration()

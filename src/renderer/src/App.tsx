@@ -271,7 +271,7 @@ export function App() {
   if (dataError) {
     main = (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-8 text-center">
-        <h1 className="display text-[22px]">{t('Spieldaten konnten nicht geladen werden')}</h1>
+        <h1 className="display text-xl">{t('Spieldaten konnten nicht geladen werden')}</h1>
         <p className="text-mute">{dataError}</p>
       </div>
     )
@@ -327,9 +327,9 @@ export function App() {
           tab={tab}
           onTab={setTab}
         />
-        <div className="min-h-0 flex-1 overflow-y-auto p-5">
-          {/* Aligned with the header; very wide windows keep the panels from stretching. */}
-          <div className="max-w-[1320px]">
+        {/* The scrollbar's 8px are part of the right padding, so cards end where the header's stats box ends. */}
+        <div className="min-h-0 flex-1 overflow-y-scroll py-5 pr-4 pl-6">
+          <div key={tab} className="fade-in">
             {builds.error ? (
               <Notice onRetry={builds.retry}>{builds.error}</Notice>
             ) : !view ? (

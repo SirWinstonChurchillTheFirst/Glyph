@@ -7,7 +7,9 @@ import { checkUpdate, getStatic, updateStatic } from './data/store'
 import { LeagueService } from './league/LeagueService'
 import { LeagueWatcher } from './league/watcher'
 
-const BACKGROUND = '#080b0f'
+const BACKGROUND = '#14121c'
+/** Height of the header in CSS pixels; the native window buttons are centred in it. */
+const HEADER_HEIGHT = 48
 
 let window: BrowserWindow | null = null
 
@@ -24,7 +26,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: BACKGROUND, symbolColor: '#82909d', height: 44 },
+    titleBarOverlay: { color: BACKGROUND, symbolColor: '#efedf6', height: HEADER_HEIGHT },
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -35,7 +37,10 @@ function createWindow(): void {
   const fitZoom = (): void => {
     if (!window) return
     const [width] = window.getContentSize()
-    window.webContents.setZoomFactor(width >= 2300 ? 1.5 : width >= 1800 ? 1.25 : width >= 1500 ? 1.1 : 1)
+    const zoom = width >= 2300 ? 1.5 : width >= 1800 ? 1.25 : width >= 1500 ? 1.1 : 1
+    window.webContents.setZoomFactor(zoom)
+    // The buttons are drawn by the system in real pixels, so they have to grow with the header.
+    window.setTitleBarOverlay({ color: BACKGROUND, symbolColor: '#efedf6', height: Math.round(HEADER_HEIGHT * zoom) })
   }
   window.on('resize', fitZoom)
   window.webContents.on('did-finish-load', fitZoom)

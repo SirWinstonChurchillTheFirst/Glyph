@@ -15,7 +15,7 @@ const STATUS: Record<LeagueStatus, { label: string; dot: string }> = {
 export function ConnectionStatus({ status }: { status: LeagueStatus }) {
   const { label, dot } = STATUS[status]
   return (
-    <span className="flex h-6 items-center gap-2 rounded-full border border-line bg-surface px-2.5 text-[12px] text-mute">
+    <span className="flex h-7 items-center gap-2 rounded-full border border-line bg-surface px-3 text-xs text-bone">
       <span className={`size-1.5 rounded-full ${dot}`} />
       {label}
     </span>
@@ -57,13 +57,13 @@ function InfoMenu({ summonerName, info }: { summonerName?: string; info: DataInf
       <button
         onClick={() => setOpen((value) => !value)}
         aria-label={t('Daten und Einstellungen')}
-        className={`relative flex size-7 items-center justify-center rounded-md text-mute transition-colors hover:bg-raised hover:text-bone ${open ? 'bg-raised text-bone' : ''}`}
+        className={`relative flex size-8 items-center justify-center rounded-control text-mute transition-colors hover:bg-raised hover:text-bone ${open ? 'bg-raised text-bone' : ''}`}
       >
-        <Settings size={15} />
+        <Settings size={16} />
         {info.newPatch && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-gold" />}
       </button>
       {open && (
-        <div className="absolute top-9 right-0 z-30 w-72 rounded-xl border border-line bg-surface p-3 text-[12px] shadow-2xl shadow-black/60">
+        <div className="panel absolute top-10 right-0 z-30 w-72 p-3 text-xs [box-shadow:var(--shadow-pop)]">
           {summonerName && row(t('Angemeldet als'), summonerName)}
           {row(t('Statistiken'), `OP.GG, Ranked Solo${info.statsPatch ? `, Patch ${info.statsPatch}` : ''}`)}
           {row(t('Spieldaten'), `Data Dragon ${info.gamePatch}`)}
@@ -93,7 +93,7 @@ function InfoMenu({ summonerName, info }: { summonerName?: string; info: DataInf
             <button
               onClick={info.onUpdate}
               disabled={info.updating}
-              className="primary mt-2 h-8 w-full text-[12px]"
+              className="primary mt-2 h-8 w-full text-xs"
             >
               {info.updating ? t('Aktualisiere …') : t`Spieldaten für ${info.newPatch} laden`}
             </button>
@@ -118,18 +118,18 @@ export function Header({
 }) {
   return (
     // Right padding keeps clear of the window buttons drawn by the system.
-    <div className="drag flex h-11 shrink-0 items-center gap-3 border-b border-line pr-[150px] pl-4">
-      <span className="display text-[16px] font-semibold tracking-[0.2em]">{t('GLYPH')}</span>
+    <div className="drag flex h-12 shrink-0 items-center gap-3 border-b border-line pr-[150px] pl-4">
+      <span className="display text-base font-semibold tracking-[0.22em]">{t('GLYPH')}</span>
       <ConnectionStatus status={status} />
       {info && (
         <>
           <button
             onClick={onSearch}
-            className="no-drag ml-auto flex h-7 w-56 items-center gap-2 rounded-md border border-line bg-surface px-2.5 text-[12px] text-mute transition-colors hover:border-mute/60 hover:text-bone"
+            className="no-drag ml-auto flex h-8 w-60 items-center gap-2 rounded-control border border-line bg-surface px-2.5 text-xs text-mute transition-colors hover:border-mute hover:text-bone"
           >
             <SearchIcon size={13} />
             {t('Suchen')}
-            <kbd className="ml-auto rounded border border-line px-1 font-sans text-[10px]">{t('Strg K')}</kbd>
+            <kbd className="ml-auto rounded border border-line px-1 font-sans text-2xs">{t('Strg K')}</kbd>
           </button>
           <InfoMenu summonerName={summonerName} info={info} />
         </>
@@ -140,7 +140,7 @@ export function Header({
 
 export function Footer() {
   return (
-    <footer className="shrink-0 px-4 py-1 text-[10px] text-mute/50">
+    <footer className="shrink-0 border-t border-line px-4 py-1.5 text-xs text-mute">
       {t('Inoffizielles Fan-Projekt · nicht von Riot Games unterstützt')}
     </footer>
   )

@@ -152,7 +152,7 @@ export function Search({ data, championId, builds, onChampion, onMatchup, onDeta
   return (
     <div className="absolute inset-0 z-40 flex justify-center bg-ink/75 pt-[12vh] backdrop-blur-[2px]" onMouseDown={onClose}>
       <div
-        className="h-fit w-[580px] overflow-hidden rounded-xl border border-line bg-surface shadow-2xl shadow-black/60"
+        className="panel h-fit w-[580px] overflow-hidden [box-shadow:var(--shadow-pop)]"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-4">
@@ -173,16 +173,16 @@ export function Search({ data, championId, builds, onChampion, onMatchup, onDeta
             }
           }}
             placeholder={t('Champion, Matchup oder Item suchen …')}
-            className="h-12 w-full bg-transparent text-[15px] outline-none placeholder:text-mute"
+            className="h-12 w-full bg-transparent text-base outline-none placeholder:text-mute"
           />
-          <kbd className="shrink-0 rounded border border-line px-1.5 text-[10px] text-mute">{t('Esc')}</kbd>
+          <kbd className="shrink-0 rounded border border-line px-1.5 text-2xs text-mute">{t('Esc')}</kbd>
         </div>
         {results.length > 0 && (
           <div className="max-h-[420px] overflow-y-auto border-t border-line p-1.5">
             {results.map((result, position) => (
               <Fragment key={result.key}>
                 {result.kind !== results[position - 1]?.kind && (
-                  <div className="px-2.5 pt-2 pb-1 text-[11px] text-mute">{GROUP_LABELS[result.kind]}</div>
+                  <div className="px-2.5 pt-2 pb-1 text-xs text-mute">{GROUP_LABELS[result.kind]}</div>
                 )}
                 <button
                 onClick={() => choose(result)}
@@ -198,7 +198,7 @@ export function Search({ data, championId, builds, onChampion, onMatchup, onDeta
           </div>
         )}
         {query.trim() === '' && (
-          <p className="border-t border-line px-4 py-3 text-[12px] text-mute">
+          <p className="border-t border-line px-4 py-3 text-xs text-mute">
             {t('Tipp: „Bard vs Brand“ öffnet direkt das Matchup. Namen sind englisch.')}
           </p>
         )}

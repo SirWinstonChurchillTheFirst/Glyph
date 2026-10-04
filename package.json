@@ -1,6 +1,6 @@
 {
   "name": "glyph",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Decision help for League of Legends champion select: runes, items and matchups, each with its reasons.",
   "main": "./out/main/index.js",
   "private": true,
@@ -15,6 +15,8 @@
     "check-i18n": "node -e \"process.env.CHECK=1;require('./scripts/check-i18n.cjs')\""
   },
   "devDependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/sora": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",

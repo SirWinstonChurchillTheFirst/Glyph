@@ -1,19 +1,42 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/sora';
+@import '@fontsource-variable/inter';
 
+/*
+ * Design tokens for the "Sigil" look. Everything visual is derived from these; components use
+ * the token names (bg-surface, text-mute, rounded-card, text-sm …) and never raw values.
+ */
 @theme {
-  --color-ink: #080b0f;
-  --color-surface: #0d1218;
-  --color-raised: #151d26;
-  --color-line: #1c2730;
-  --color-bone: #f5f7fa;
-  --color-mute: #82909d;
-  /* Gold marks what GLYPH recommends and the one primary action, and nothing else. */
-  --color-gold: #d6ad62;
-  --color-ok: #5fbf8f;
-  --color-up: #6cc5b0;
-  --color-down: #e37b68;
-  --font-sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
-  --font-display: Bahnschrift, 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
+  /* Colour: ink violet ground, three surface steps, gold leaf for what GLYPH recommends. */
+  --color-ink: #14121c;
+  --color-surface: #1d1a29;
+  --color-raised: #292539;
+  --color-line: #383250;
+  --color-bone: #efedf6;
+  --color-mute: #aaa5c0;
+  --color-gold: #e0b866;
+  --color-ok: #6fd39a;
+  --color-up: #5fd0c0;
+  --color-down: #f08873;
+  --color-magic: #8f9bf5;
+
+  /* Type: Sora for names and figures, Inter for everything read as text. Six sizes, no others. */
+  --font-sans: 'Inter Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Sora Variable', 'Inter Variable', 'Segoe UI', sans-serif;
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 26px;
+  --text-3xl: 32px;
+
+  /* Shape and depth. */
+  --radius-control: 8px;
+  --radius-card: 14px;
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.045), 0 10px 28px -16px rgb(0 0 0 / 0.75);
+  --shadow-pop: 0 24px 60px -20px rgb(0 0 0 / 0.85);
 }
 
 html,
@@ -27,18 +50,17 @@ body {
   background: var(--color-ink);
   color: var(--color-bone);
   font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: var(--text-sm);
+  line-height: 1.5;
   user-select: none;
   overflow: hidden;
 }
 
-/* Condensed display face for names and figures. */
+/* Names and figures. Figures keep their width so columns of numbers line up. */
 .display {
   font-family: var(--font-display);
-  font-variation-settings: 'wdth' 80;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.005em;
 }
 
 .drag {
@@ -54,7 +76,7 @@ button {
 }
 
 button:disabled {
-  cursor: default;
+  cursor: not-allowed;
 }
 
 /* In the base layer, so a field can opt out with `outline-none`. */
@@ -62,6 +84,7 @@ button:disabled {
   :focus-visible {
     outline: 2px solid var(--color-gold);
     outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
@@ -75,6 +98,178 @@ button:disabled {
   border-radius: 4px;
 }
 
+/* ---------- Surfaces and controls: in the components layer, so utilities can adjust them ---------- */
+
+@layer components {
+
+.panel {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+/* Quiet surface for the start page and secondary buttons. */
+.card {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+button.card:hover {
+  background: var(--color-raised);
+  border-color: var(--color-mute);
+}
+
+/* ---------- Controls ---------- */
+
+/* The one primary action per screen. */
+.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: var(--color-gold);
+  color: var(--color-ink);
+  font-weight: 600;
+  transition:
+    filter 150ms,
+    transform 150ms;
+}
+
+.primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Unmistakably off: no fill, dashed outline. */
+.primary:disabled {
+  border: 1px dashed var(--color-line);
+  background: transparent;
+  color: var(--color-mute);
+  font-weight: 500;
+}
+
+/* A link does something; it is underlined. Status text only informs and never is. */
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-bone);
+  text-decoration: underline;
+  text-decoration-color: var(--color-mute);
+  text-underline-offset: 4px;
+  transition: text-decoration-color 150ms;
+}
+
+.link:hover {
+  text-decoration-color: var(--color-gold);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-mute);
+}
+
+.check {
+  display: flex;
+  cursor: pointer;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Sits on the first text line: 13px text at 1.5 line height leaves 2px above a 16px box. */
+.check-box {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-mute);
+  border-radius: 4px;
+  color: transparent;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+.check:hover .check-box {
+  border-color: var(--color-bone);
+}
+
+.check input:checked + .check-box {
+  border-color: var(--color-gold);
+  background: var(--color-gold);
+  color: var(--color-ink);
+}
+
+.check input:focus-visible + .check-box {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+.segment {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+  background: var(--color-ink);
+}
+
+.segment button {
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 6px;
+  color: var(--color-mute);
+  font-size: var(--text-xs);
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+
+.segment button:hover {
+  color: var(--color-bone);
+}
+
+.segment button[aria-checked='true'] {
+  background: var(--color-raised);
+  color: var(--color-bone);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+/* A row that can be clicked as a whole. */
+.row {
+  border-radius: var(--radius-control);
+  transition: background-color 150ms;
+}
+
+.row:hover {
+  background: var(--color-raised);
+}
+
+}
+
+/* ---------- Motion: only where it shows what changed ---------- */
+
 @keyframes drawer-in {
   from {
     transform: translateX(24px);
@@ -86,45 +281,43 @@ button:disabled {
   animation: drawer-in 160ms ease-out;
 }
 
-/* The one primary action per screen. */
-.primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 8px;
-  background: var(--color-gold);
-  color: var(--color-ink);
-  font-weight: 600;
-  transition:
-    filter 150ms,
-    transform 150ms,
-    opacity 150ms;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 
-.primary:hover:not(:disabled) {
-  filter: brightness(1.08);
+/* A tab's content arriving. */
+.fade-in {
+  animation: fade-in 160ms ease-out;
 }
 
-.primary:active:not(:disabled) {
-  transform: scale(0.98);
+/* Opens and closes by height without knowing the height. */
+.reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 180ms ease-out;
 }
 
-.primary:disabled {
-  opacity: 0.4;
+.reveal[data-open='true'] {
+  grid-template-rows: 1fr;
 }
 
-/* Quiet surface for cards and secondary buttons. */
-.card {
-  border-radius: 12px;
-  border: 1px solid rgb(255 255 255 / 0.07);
-  background: rgb(255 255 255 / 0.025);
-  transition: background-color 150ms, border-color 150ms;
+.reveal > * {
+  overflow: hidden;
 }
 
-button.card:hover {
-  background: rgb(255 255 255 / 0.05);
-  border-color: rgb(255 255 255 / 0.12);
+/* The sigil is drawn once whenever the build changes. */
+@keyframes sigil-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+.sigil-line {
+  stroke-dasharray: 1;
+  animation: sigil-draw 600ms ease-out;
 }
 
 @keyframes spin {
@@ -149,8 +342,14 @@ button.card:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .drawer,
+  .fade-in,
+  .sigil-line,
   .loading,
   .spin {
     animation: none;
+  }
+
+  .reveal {
+    transition: none;
   }
 }
