@@ -16,6 +16,7 @@ import type {
   Stat,
   StaticData
 } from '../../shared/types'
+import { t } from '../../shared/i18n'
 
 const ENDPOINT = 'https://mcp-api.op.gg/mcp'
 const CACHE_TTL = 24 * 60 * 60 * 1000
@@ -63,15 +64,15 @@ async function post(body: string): Promise<Response> {
   }
   throw new Error(
     failure instanceof Error && failure.name === 'TimeoutError'
-      ? 'OP.GG antwortet gerade nicht.'
-      : 'OP.GG ist nicht erreichbar. Bitte die Internetverbindung prüfen.'
+      ? t('OP.GG antwortet gerade nicht.')
+      : t('OP.GG ist nicht erreichbar. Bitte die Internetverbindung prüfen.')
   )
 }
 
 async function rpc(method: string, params: unknown): Promise<{ result?: any; error?: { message: string } }> {
   const response = await post(JSON.stringify({ jsonrpc: '2.0', id: ++requestId, method, params }))
   sessionId = response.headers.get('mcp-session-id') ?? sessionId
-  if (!response.ok) throw new Error(`OP.GG antwortet mit Status ${response.status}.`)
+  if (!response.ok) throw new Error(t`OP.GG antwortet mit Status ${response.status}.`)
   const text = await response.text()
   // The endpoint may answer as a server-sent event stream; the payload is its last data line.
   const payload = text.includes('data:')
@@ -110,7 +111,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<an
     const response = await rpc('tools/call', { name, arguments: args })
     if (response.error) throw new Error(response.error.message)
     const text = (response.result?.content ?? []).map((part: { text?: string }) => part.text ?? '').join('')
-    if (response.result?.isError) throw new Error(text || 'OP.GG hat die Anfrage abgelehnt.')
+    if (response.result?.isError) throw new Error(text || t('OP.GG hat die Anfrage abgelehnt.'))
     // Tools with selectable fields answer in a compact text format instead of JSON.
     return text.startsWith('class ') ? parseCompact(text) : JSON.parse(text)
   }
@@ -200,7 +201,7 @@ interface Guide {
 
 function parseGuide(raw: any, championId: number, role: Role, opponentId: number): Guide {
   const data = raw?.data
-  if (!data?.summary) throw new Error('OP.GG hat für diesen Champion keine Daten geliefert.')
+  if (!data?.summary) throw new Error(t('OP.GG hat für diesen Champion keine Daten geliefert.'))
 
   const positions: any[] = data.summary.positions ?? []
   const position = positions.find((entry) => ROLES[entry.name] === role)
@@ -303,7 +304,7 @@ function parseGuide(raw: any, championId: number, role: Role, opponentId: number
 function guide(data: StaticData, championId: number, role: Role, opponentId: number): Promise<Guide> {
   const me = data.champions[championId]
   const opponent = data.champions[opponentId]
-  if (!me || !opponent) return Promise.reject(new Error('Unbekannter Champion.'))
+  if (!me || !opponent) return Promise.reject(new Error(t('Unbekannter Champion.')))
   return cached(`guide-${championId}-${role}-${opponentId}`, () =>
     limited(async () =>
       parseGuide(
@@ -350,7 +351,7 @@ const ANALYSIS_FIELDS = [
 /** The champion's overall build in one request: far less detail than a matchup, but quick. */
 function overview(data: StaticData, championId: number, role: Role): Promise<BuildSet> {
   const me = data.champions[championId]
-  if (!me) return Promise.reject(new Error('Unbekannter Champion.'))
+  if (!me) return Promise.reject(new Error(t('Unbekannter Champion.')))
   return cached(`overview-${championId}-${role}`, () =>
     limited(async () => {
       const raw = await callTool('lol_get_champion_analysis', {
@@ -361,7 +362,7 @@ function overview(data: StaticData, championId: number, role: Role): Promise<Bui
       })
       const source = raw?.data
       const runes = source?.runes
-      if (!runes?.primary_rune_ids?.length) throw new Error('Für diesen Champion liegen in dieser Rolle keine Build-Daten vor.')
+      if (!runes?.primary_rune_ids?.length) throw new Error(t('Für diesen Champion liegen in dieser Rolle keine Build-Daten vor.'))
 
       const page = {
         ...stat(runes),
@@ -420,7 +421,7 @@ export async function getBuilds(
 ): Promise<BuildSet> {
   if (opponentId !== null) {
     const { builds } = await guide(data, championId, role, opponentId)
-    if (!builds) throw new Error('Für dieses Matchup liegen keine Build-Daten vor.')
+    if (!builds) throw new Error(t('Für dieses Matchup liegen keine Build-Daten vor.'))
     return builds
   }
   if (depth === 'quick') return overview(data, championId, role)
@@ -432,7 +433,7 @@ export async function getBuilds(
       top.map((matchup) => guide(data, championId, role, matchup.opponentId).catch(() => null))
     )
     const builds = guides.map((entry) => entry?.builds).filter((entry): entry is BuildSet => !!entry)
-    if (builds.length === 0) throw new Error('Für diesen Champion liegen in dieser Rolle keine Build-Daten vor.')
+    if (builds.length === 0) throw new Error(t('Für diesen Champion liegen in dieser Rolle keine Build-Daten vor.'))
 
     const all = matchups.reduce((sum, matchup) => sum + matchup.games, 0)
     const covered = top

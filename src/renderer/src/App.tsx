@@ -11,6 +11,7 @@ import { Search } from './Search'
 import { Footer, Header } from './shell'
 import { Notice, Skeleton, type Detail } from './ui'
 import { BuildsView, DecisionView, ItemsView, MatchupsView, type View } from './views'
+import { t } from '../../shared/i18n'
 
 const RECENT_KEY = 'glyph.recent'
 const RECENT_MAX = 8
@@ -146,14 +147,14 @@ export function App() {
 
   const situation: Situation = useMemo(() => {
     const enemies = draft?.enemies
-    const marked = (what: string): string => `Du hast „${what}“ markiert.`
+    const marked = (what: string): string => t`Du hast „${what}“ markiert.`
     return {
-      ad: derived.ad && enemies ? `Gegner mit physischem Schaden: ${enemies.ad.join(', ')}.` : marked('viel physischer Schaden'),
-      ap: derived.ap && enemies ? `Gegner mit magischem Schaden: ${enemies.ap.join(', ')}.` : marked('viel magischer Schaden'),
+      ad: derived.ad && enemies ? t`Gegner mit physischem Schaden: ${enemies.ad.join(', ')}.` : marked(t('viel physischer Schaden')),
+      ap: derived.ap && enemies ? t`Gegner mit magischem Schaden: ${enemies.ap.join(', ')}.` : marked(t('viel magischer Schaden')),
       cc:
         derived.cc && enemies
-          ? `Das gegnerische Team hat viel Crowd Control (${enemies.metrics.find((metric) => metric.id === 'control')?.basis}).`
-          : marked('viel Crowd Control')
+          ? t`Das gegnerische Team hat viel Crowd Control (${enemies.metrics.find((metric) => metric.id === 'control')?.basis}).`
+          : marked(t('viel Crowd Control'))
     }
   }, [draft, derived])
 
@@ -262,7 +263,7 @@ export function App() {
       setData(result.data)
       setNewPatch(null)
       setUpdate({ busy: false })
-    } else setUpdate({ busy: false, message: `Aktualisierung fehlgeschlagen: ${result.message}` })
+    } else setUpdate({ busy: false, message: t`Aktualisierung fehlgeschlagen: ${result.message}` })
   }
 
   // ---------- Main area ----------
@@ -270,7 +271,7 @@ export function App() {
   if (dataError) {
     main = (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-8 text-center">
-        <h1 className="display text-[22px]">Spieldaten konnten nicht geladen werden</h1>
+        <h1 className="display text-[22px]">{t('Spieldaten konnten nicht geladen werden')}</h1>
         <p className="text-mute">{dataError}</p>
       </div>
     )
@@ -296,7 +297,7 @@ export function App() {
             recommendation,
             opponentId,
             connected,
-            importNote: status === 'in-game' ? 'Im Spiel lassen sich Runen und Zauber nicht mehr ändern.' : undefined,
+            importNote: status === 'in-game' ? t('Im Spiel lassen sich Runen und Zauber nicht mehr ändern.') : undefined,
             canSpells: status === 'champ-select' && championId === liveId,
             onOpen: setDetail,
             onOpponent: setOpponent,
@@ -319,7 +320,7 @@ export function App() {
           stats={profile.data}
           note={
             champSelect?.gameMode && champSelect.gameMode !== 'CLASSIC'
-              ? `${champSelect.gameMode}: Daten aus Ranked Solo`
+              ? t`${champSelect.gameMode}: Daten aus Ranked Solo`
               : undefined
           }
           onClose={manualId !== null && status !== 'champ-select' ? () => setManualId(null) : undefined}
@@ -335,8 +336,8 @@ export function App() {
               <Skeleton
                 label={
                   opponentId !== null
-                    ? `Lade Matchup gegen ${data.champions[opponentId]?.name} …`
-                    : 'Lade die häufigsten Matchups und summiere die Builds …'
+                    ? t`Lade Matchup gegen ${data.champions[opponentId]?.name} …`
+                    : t('Lade die häufigsten Matchups und summiere die Builds …')
                 }
               />
             ) : tab === 'decision' ? (
@@ -368,11 +369,11 @@ export function App() {
 
   const scope =
     opponentId !== null && data
-      ? `gegen ${data.champions[opponentId]?.name}`
+      ? t`gegen ${data.champions[opponentId]?.name}`
       : builds.data
         ? builds.data.quick
-          ? 'Champion gesamt'
-          : `Summe der ${builds.data.opponentIds.length} häufigsten Matchups`
+          ? t('Champion gesamt')
+          : t`Summe der ${builds.data.opponentIds.length} häufigsten Matchups`
         : ''
 
   return (

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { interval, verdict, winRate } from '../../shared/analysis'
 import type { Stat, StaticData } from '../../shared/types'
 import { championIconUrl, count, itemIconUrl, percent, perkIconUrl } from './lib'
+import { t } from '../../shared/i18n'
 
 /** What the detail drawer can show. */
 export type Detail = { kind: 'item'; id: number } | { kind: 'rune'; id: number }
@@ -16,7 +17,7 @@ const scale = (value: number): number =>
  * samples and narrow for large ones; it is coloured only when it lies clear of 50 %.
  */
 export function WinBar({ stat, compact }: { stat: { games: number; wins: number }; compact?: boolean }) {
-  if (stat.games === 0) return <span className="text-mute">keine Spiele</span>
+  if (stat.games === 0) return <span className="text-mute">{t('keine Spiele')}</span>
   const rate = winRate(stat)
   const range = interval(stat.wins, stat.games)
   const side = verdict(stat.wins, stat.games)
@@ -26,7 +27,7 @@ export function WinBar({ stat, compact }: { stat: { games: number; wins: number 
   return (
     <span
       className="inline-flex items-center gap-2"
-      title={`${count(stat.games)} Spiele · 95-%-Bereich ${percent(range.low)} bis ${percent(range.high)}`}
+      title={t`${count(stat.games)} Spiele · 95-%-Bereich ${percent(range.low)} bis ${percent(range.high)}`}
     >
       <span className={`display w-[52px] text-right text-[15px] ${text}`}>{percent(rate)}</span>
       <span className={`relative h-3 ${compact ? 'w-16' : 'w-28'}`}>
@@ -48,7 +49,7 @@ export function WinBar({ stat, compact }: { stat: { games: number; wins: number 
 /** Share of games as a thin bar with the figure. */
 export function PickBar({ stat }: { stat: Stat }) {
   return (
-    <span className="inline-flex items-center gap-2" title={`${count(stat.games)} Spiele`}>
+    <span className="inline-flex items-center gap-2" title={t`${count(stat.games)} Spiele`}>
       <span className="relative h-1 w-14 rounded-full bg-line">
         <span
           className="absolute inset-y-0 left-0 rounded-full bg-bone/70"
@@ -183,7 +184,7 @@ export function Why({ reasons, open, quiet }: { reasons: string[]; open?: boolea
   return (
     <details open={open} className="group text-[12px]">
       <summary className={`cursor-pointer list-none hover:underline ${quiet ? 'text-mute' : 'text-gold'}`}>
-        Warum?<span className="ml-1 inline-block transition-transform group-open:rotate-90">›</span>
+        {t('Warum?')}<span className="ml-1 inline-block transition-transform group-open:rotate-90">›</span>
       </summary>
       <ul className="mt-1.5 space-y-1 text-bone/85 select-text">
         {reasons.map((reason) => (
@@ -203,7 +204,7 @@ export function Notice({ children, onRetry }: { children: ReactNode; onRetry?: (
       {children}
       {onRetry && (
         <button onClick={onRetry} className="ml-2 text-bone underline underline-offset-2">
-          Erneut laden
+          {t('Erneut laden')}
         </button>
       )}
     </div>

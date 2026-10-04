@@ -10,6 +10,7 @@ import type {
 } from '../../shared/types'
 import { discoverClient, findRiotClient, type LcuCredentials } from './credentials'
 import { LcuError, lcuRequest } from './lcu'
+import { t } from '../../shared/i18n'
 
 /** Rune pages created by this app start with this, so they can be reused instead of piling up. */
 export const PAGE_PREFIX = 'Glyph'
@@ -208,7 +209,7 @@ export class LeagueService {
             return {
               ok: false,
               code: 'NO_FREE_PAGE',
-              message: 'Keine freie Runenseite.',
+              message: t('Keine freie Runenseite.'),
               replaceable: candidate && { id: candidate.id, name: candidate.name }
             }
           }
@@ -229,7 +230,7 @@ export class LeagueService {
           ok: false,
           code: 'INVALID_PAGE',
           message:
-            'Der Client hat die Runenseite als ungültig markiert. Vermutlich sind die Daten älter als der aktuelle Patch.'
+            t('Der Client hat die Runenseite als ungültig markiert. Vermutlich sind die Daten älter als der aktuelle Patch.')
         }
       }
       // `current: true` normally selects the page already; this covers clients where it does not.
@@ -237,13 +238,13 @@ export class LeagueService {
       return { ok: true, pageName: created.name ?? name }
     } catch (error) {
       if (error instanceof LcuError && error.status === 0) {
-        return { ok: false, code: 'NOT_CONNECTED', message: 'Der League Client ist nicht erreichbar.' }
+        return { ok: false, code: 'NOT_CONNECTED', message: t('Der League Client ist nicht erreichbar.') }
       }
       const detail = error instanceof Error ? error.message : String(error)
       return {
         ok: false,
         code: 'REQUEST_FAILED',
-        message: `Der Client hat den Import abgelehnt (${detail}).`
+        message: t`Der Client hat den Import abgelehnt (${detail}).`
       }
     }
   }
@@ -253,7 +254,7 @@ export class LeagueService {
    * key; with `auto`, a spell the player already has stays on its key.
    */
   async importSpells(ids: number[], flashKey: FlashKey): Promise<SpellResult> {
-    if (ids.length !== 2) return { ok: false, message: 'Für diesen Champion liegen keine Beschwörerzauber vor.' }
+    if (ids.length !== 2) return { ok: false, message: t('Für diesen Champion liegen keine Beschwörerzauber vor.') }
     try {
       const current = await this.request<{ spell1Id?: number; spell2Id?: number }>(
         'GET',
@@ -271,20 +272,20 @@ export class LeagueService {
       return { ok: true }
     } catch (error) {
       if (error instanceof LcuError && error.status === 0) {
-        return { ok: false, message: 'Der League Client ist nicht erreichbar.' }
+        return { ok: false, message: t('Der League Client ist nicht erreichbar.') }
       }
       if (error instanceof LcuError && error.status === 404) {
-        return { ok: false, message: 'Beschwörerzauber lassen sich nur im Champion Select setzen.' }
+        return { ok: false, message: t('Beschwörerzauber lassen sich nur im Champion Select setzen.') }
       }
       const detail = error instanceof Error ? error.message : String(error)
-      return { ok: false, message: `Der Client hat die Zauber abgelehnt (${detail}).` }
+      return { ok: false, message: t`Der Client hat die Zauber abgelehnt (${detail}).` }
     }
   }
 
   async launchLeague(): Promise<{ ok: boolean; message?: string }> {
     const riotClient = await findRiotClient()
     if (!riotClient) {
-      return { ok: false, message: 'Riot Client nicht gefunden. Bitte League manuell starten.' }
+      return { ok: false, message: t('Riot Client nicht gefunden. Bitte League manuell starten.') }
     }
     return new Promise((resolve) => {
       const child = spawn(
@@ -293,7 +294,7 @@ export class LeagueService {
         { detached: true, stdio: 'ignore' }
       )
       child.once('error', () =>
-        resolve({ ok: false, message: 'League konnte nicht gestartet werden. Bitte manuell starten.' })
+        resolve({ ok: false, message: t('League konnte nicht gestartet werden. Bitte manuell starten.') })
       )
       child.once('spawn', () => {
         child.unref()

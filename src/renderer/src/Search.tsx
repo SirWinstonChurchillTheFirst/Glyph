@@ -3,6 +3,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import type { BuildSet, StaticData } from '../../shared/types'
 import { pageName } from './lib'
 import { ChampionIcon, ItemIcon, RuneIcon, type Detail } from './ui'
+import { t } from '../../shared/i18n'
 
 interface Result {
   key: string
@@ -25,11 +26,11 @@ interface Props {
 
 const GROUPS = ['Champion', 'Matchup', 'Build', 'Item', 'Rune']
 const GROUP_LABELS: Record<string, string> = {
-  Champion: 'Champions',
-  Matchup: 'Matchups',
-  Build: 'Builds',
-  Item: 'Items',
-  Rune: 'Runen'
+  Champion: t('Champions'),
+  Matchup: t('Matchups'),
+  Build: t('Builds'),
+  Item: t('Items'),
+  Rune: t('Runen')
 }
 
 const normal = (text: string): string => text.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -62,7 +63,7 @@ export function Search({ data, championId, builds, onChampion, onMatchup, onDeta
         for (const opponent of find(versus[1], 5)) {
           out.push({
             key: `m-${me.id}-${opponent.id}`,
-            label: `${me.name} gegen ${opponent.name}`,
+            label: t`${me.name} gegen ${opponent.name}`,
             kind: 'Matchup',
             icon: <ChampionIcon id={opponent.id} data={data} size={24} />,
             run: () => onMatchup(me.id, opponent.id)
@@ -86,7 +87,7 @@ export function Search({ data, championId, builds, onChampion, onMatchup, onDeta
       if (championId !== null && champion.id !== championId) {
         out.push({
           key: `v-${champion.id}`,
-          label: `${data.champions[championId]?.name} gegen ${champion.name}`,
+          label: t`${data.champions[championId]?.name} gegen ${champion.name}`,
           kind: 'Matchup',
           icon: <ChampionIcon id={champion.id} data={data} size={24} />,
           run: () => onMatchup(championId, champion.id)
@@ -171,10 +172,10 @@ export function Search({ data, championId, builds, onChampion, onMatchup, onDeta
               setIndex((value) => Math.max(0, value - 1))
             }
           }}
-            placeholder="Champion, Matchup oder Item suchen …"
+            placeholder={t('Champion, Matchup oder Item suchen …')}
             className="h-12 w-full bg-transparent text-[15px] outline-none placeholder:text-mute"
           />
-          <kbd className="shrink-0 rounded border border-line px-1.5 text-[10px] text-mute">Esc</kbd>
+          <kbd className="shrink-0 rounded border border-line px-1.5 text-[10px] text-mute">{t('Esc')}</kbd>
         </div>
         {results.length > 0 && (
           <div className="max-h-[420px] overflow-y-auto border-t border-line p-1.5">
@@ -198,11 +199,11 @@ export function Search({ data, championId, builds, onChampion, onMatchup, onDeta
         )}
         {query.trim() === '' && (
           <p className="border-t border-line px-4 py-3 text-[12px] text-mute">
-            Tipp: „Bard vs Brand“ öffnet direkt das Matchup. Namen sind englisch.
+            {t('Tipp: „Bard vs Brand“ öffnet direkt das Matchup. Namen sind englisch.')}
           </p>
         )}
         {query.trim() !== '' && results.length === 0 && (
-          <p className="border-t border-line px-4 py-3 text-mute">Nichts gefunden. Champion-, Item- und Runennamen sind englisch.</p>
+          <p className="border-t border-line px-4 py-3 text-mute">{t('Nichts gefunden. Champion-, Item- und Runennamen sind englisch.')}</p>
         )}
       </div>
     </div>

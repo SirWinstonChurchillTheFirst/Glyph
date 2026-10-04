@@ -2,11 +2,12 @@ import type { Facing } from '../../shared/recommend'
 import type { DraftSlot, StaticData } from '../../shared/types'
 import { ROLE_LABELS } from './lib'
 import { ChampionIcon } from './ui'
+import { t } from '../../shared/i18n'
 
 const FACING: [flag: keyof Facing, label: string, effect: string][] = [
-  ['ad', 'Viel physischer Schaden', 'bevorzugt Rüstung'],
-  ['ap', 'Viel magischer Schaden', 'bevorzugt Magieresistenz'],
-  ['cc', 'Viel Crowd Control', 'bevorzugt Zähigkeit']
+  ['ad', t('Viel physischer Schaden'), t('bevorzugt Rüstung')],
+  ['ap', t('Viel magischer Schaden'), t('bevorzugt Magieresistenz')],
+  ['cc', t('Viel Crowd Control'), t('bevorzugt Zähigkeit')]
 ]
 
 function Team({
@@ -32,10 +33,10 @@ function Team({
             <>
               <ChampionIcon id={slot.championId} data={data} size={24} />
               <span className={`min-w-0 flex-1 truncate ${champion ? '' : 'text-mute/60'}`}>
-                {champion?.name ?? 'noch offen'}
+                {champion?.name ?? t('noch offen')}
               </span>
               <span className="text-[11px] text-mute">
-                {slot.isMe ? 'du' : slot.championId === activeId ? 'Lane' : slot.role ? ROLE_LABELS[slot.role] : ''}
+                {slot.isMe ? t('du') : slot.championId === activeId ? 'Lane' : slot.role ? ROLE_LABELS[slot.role] : ''}
               </span>
             </>
           )
@@ -44,7 +45,7 @@ function Team({
             <button
               key={index}
               onClick={() => onPick(slot.championId!)}
-              title="Als Lane-Gegner setzen"
+              title={t('Als Lane-Gegner setzen')}
               className={`${base} hover:bg-raised ${slot.championId === activeId ? 'bg-raised' : ''}`}
             >
               {content}
@@ -81,28 +82,28 @@ export function Rail(props: RailProps) {
     <aside className="flex w-[232px] shrink-0 flex-col gap-5 overflow-y-auto border-r border-line px-3.5 py-4">
       {inDraft ? (
         <>
-          <Team title="Dein Team" slots={myTeam} data={data} />
-          <Team title="Gegner · Klick setzt die Lane" slots={theirTeam} data={data} activeId={opponentId} onPick={onOpponent} />
+          <Team title={t('Dein Team')} slots={myTeam} data={data} />
+          <Team title={t('Gegner · Klick setzt die Lane')} slots={theirTeam} data={data} activeId={opponentId} onPick={onOpponent} />
         </>
       ) : (
         <div>
-          <h3 className="mb-1.5 text-[11px] text-mute">Lane-Gegner</h3>
+          <h3 className="mb-1.5 text-[11px] text-mute">{t('Lane-Gegner')}</h3>
           {opponent ? (
             <div className="flex items-center gap-2 rounded bg-raised px-1.5 py-1">
               <ChampionIcon id={opponentId} data={data} size={24} />
               <span className="min-w-0 flex-1 truncate">{opponent.name}</span>
               <button onClick={() => onOpponent(null)} className="text-[11px] text-mute hover:text-bone">
-                entfernen
+                {t('entfernen')}
               </button>
             </div>
           ) : (
-            <p className="text-[12px] text-mute">Keiner gewählt – die Analyse summiert die häufigsten Matchups.</p>
+            <p className="text-[12px] text-mute">{t('Keiner gewählt – die Analyse summiert die häufigsten Matchups.')}</p>
           )}
         </div>
       )}
 
       <div>
-        <h3 className="mb-1.5 text-[11px] text-mute">Was steht dir gegenüber?</h3>
+        <h3 className="mb-1.5 text-[11px] text-mute">{t('Was steht dir gegenüber?')}</h3>
         {FACING.map(([flag, label, effect]) => (
           <label key={flag} className="flex cursor-pointer items-start gap-2 rounded px-1.5 py-1 hover:bg-raised">
             <input
@@ -115,13 +116,13 @@ export function Rail(props: RailProps) {
               {label}
               <span className="block text-[11px] text-mute">
                 {effect}
-                {derived[flag] && ' · aus dem Draft'}
+                {derived[flag] && t(' · aus dem Draft')}
               </span>
             </span>
           </label>
         ))}
         <p className="mt-1.5 px-1.5 text-[11px] text-mute">
-          Für Poke, Engage oder Scaling gibt es keine Item-Daten, aus denen sich eine Anpassung belegen ließe.
+          {t('Für Poke, Engage oder Scaling gibt es keine Item-Daten, aus denen sich eine Anpassung belegen ließe.')}
         </p>
       </div>
 

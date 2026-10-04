@@ -2,6 +2,7 @@ import { Gamepad2, Loader2, Search, Swords, Wand2, Package } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { LeagueStatus, StaticData } from '../../shared/types'
 import { ChampionIcon, Mark } from './ui'
+import { t } from '../../shared/i18n'
 
 interface Props {
   status: LeagueStatus
@@ -15,9 +16,9 @@ interface Props {
 }
 
 const FEATURES: [icon: ReactNode, title: string, text: string][] = [
-  [<Wand2 size={15} />, 'Runen', 'Empfohlene Seite mit einem Klick im Client'],
-  [<Package size={15} />, 'Items', 'Kaufpfad, angepasst an das gegnerische Team'],
-  [<Swords size={15} />, 'Matchup', 'Winrate und Einschätzung für deine Lane']
+  [<Wand2 size={15} />, t('Runen'), t('Empfohlene Seite mit einem Klick im Client')],
+  [<Package size={15} />, 'Items', t('Kaufpfad, angepasst an das gegnerische Team')],
+  [<Swords size={15} />, 'Matchup', t('Winrate und Einschätzung für deine Lane')]
 ]
 
 function SearchLink({ onSearch }: { onSearch: () => void }) {
@@ -27,7 +28,7 @@ function SearchLink({ onSearch }: { onSearch: () => void }) {
       className="card flex h-10 items-center gap-2 px-4 text-mute hover:text-bone"
     >
       <Search size={14} />
-      Champion oder Matchup öffnen
+      {t('Champion oder Matchup öffnen')}
     </button>
   )
 }
@@ -39,38 +40,38 @@ export function Home({ status, data, recent, launch, onLaunch, onSearch, onChamp
   let actions: ReactNode
 
   if (status === 'idle') {
-    title = 'Bereit für dein nächstes Spiel'
-    text = 'League ist verbunden. Sobald ein Champion Select beginnt, erscheint die Analyse von selbst.'
+    title = t('Bereit für dein nächstes Spiel')
+    text = t('League ist verbunden. Sobald ein Champion Select beginnt, erscheint die Analyse von selbst.')
     actions = <SearchLink onSearch={onSearch} />
   } else if (status === 'champ-select') {
-    title = 'Champion Select läuft'
-    text = 'Wähle einen Champion – Runen, Items und Matchup erscheinen sofort.'
+    title = t('Champion Select läuft')
+    text = t('Wähle einen Champion – Runen, Items und Matchup erscheinen sofort.')
     actions = null
   } else if (status === 'in-game') {
-    title = 'Spiel läuft'
-    text = 'Glyph konnte deinen Champion für dieses Spiel nicht erkennen. Du kannst ihn über die Suche öffnen.'
+    title = t('Spiel läuft')
+    text = t('Glyph konnte deinen Champion für dieses Spiel nicht erkennen. Du kannst ihn über die Suche öffnen.')
     actions = <SearchLink onSearch={onSearch} />
   } else if (status === 'starting') {
-    title = 'League startet'
-    text = 'Glyph verbindet sich, sobald der Client bereit ist.'
+    title = t('League startet')
+    text = t('Glyph verbindet sich, sobald der Client bereit ist.')
     actions = (
       <span className="flex h-10 items-center gap-2 text-mute">
         <Loader2 size={15} className="spin" />
-        Verbinde …
+        {t('Verbinde …')}
       </span>
     )
   } else if (status === 'unreachable') {
-    title = 'Der Client antwortet nicht'
-    text = 'League läuft, reagiert aber nicht. Glyph versucht es weiter – falls es so bleibt, starte den Client neu.'
+    title = t('Der Client antwortet nicht')
+    text = t('League läuft, reagiert aber nicht. Glyph versucht es weiter – falls es so bleibt, starte den Client neu.')
     actions = <SearchLink onSearch={onSearch} />
   } else {
-    title = 'Bereit?'
-    text = 'League of Legends ist gerade nicht geöffnet.'
+    title = t('Bereit?')
+    text = t('League of Legends ist gerade nicht geöffnet.')
     actions = (
       <>
         <button onClick={onLaunch} disabled={launch.busy} className="primary h-10 px-5">
           {launch.busy ? <Loader2 size={15} className="spin" /> : <Gamepad2 size={16} />}
-          {launch.busy ? 'League wird gestartet …' : 'League starten'}
+          {launch.busy ? t('League wird gestartet …') : t('League starten')}
         </button>
         <SearchLink onSearch={onSearch} />
       </>
@@ -103,7 +104,7 @@ export function Home({ status, data, recent, launch, onLaunch, onSearch, onChamp
 
         {recent.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="mr-1 text-[12px] text-mute">Zuletzt geöffnet</span>
+            <span className="mr-1 text-[12px] text-mute">{t('Zuletzt geöffnet')}</span>
             {recent.map((id) => (
               <button
                 key={id}

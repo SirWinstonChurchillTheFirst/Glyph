@@ -1,6 +1,6 @@
 {
   "name": "glyph",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Decision help for League of Legends champion select: runes, items and matchups, each with its reasons.",
   "main": "./out/main/index.js",
   "private": true,
@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "update-data": "node scripts/update-data.ts",
     "dist": "electron-vite build && electron-builder --win && node scripts/checksum.cjs",
-    "icon": "electron scripts/make-icon.cjs"
+    "icon": "electron scripts/make-icon.cjs",
+    "check-i18n": "node -e \"process.env.CHECK=1;require('./scripts/check-i18n.cjs')\""
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

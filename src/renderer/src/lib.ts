@@ -17,9 +17,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   support: 'Support'
 }
 
-export const percent = (value: number, digits = 1): string =>
-  `${(value * 100).toFixed(digits).replace('.', ',')} %`
-export const count = (value: number): string => value.toLocaleString('de-DE')
+export { count, percent } from '../../shared/i18n'
 
 export const pageName = (page: RunePageStat, data: StaticData): string =>
   `${data.runes[page.keystone]?.name ?? page.keystone} + ${data.styles[page.subStyle]?.name ?? page.subStyle}`

@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
 import path from 'node:path'
+import { setLanguage, type Language } from '../shared/i18n'
 import type { FlashKey, ImportRequest, Role } from '../shared/types'
 import { getBuilds, getProfile, warmUp } from './data/opgg'
 import { checkUpdate, getStatic, updateStatic } from './data/store'
@@ -81,6 +82,7 @@ if (!app.requestSingleInstanceLock()) {
       league.importSpells(ids, flashKey)
     )
     ipcMain.handle('league:launch', () => league.launchLeague())
+    ipcMain.handle('app:language', (_event, language: Language) => setLanguage(language === 'en' ? 'en' : 'de'))
 
     createWindow()
     watcher.start()

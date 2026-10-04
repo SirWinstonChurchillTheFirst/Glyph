@@ -2,9 +2,10 @@ import { X } from 'lucide-react'
 import type { ChampionInfo, ChampionProfile, Role } from '../../shared/types'
 import { ROLE_LABELS, count, percent, splashUrl } from './lib'
 import { Figure } from './ui'
+import { t } from '../../shared/i18n'
 
 export const TABS = [
-  ['decision', 'Entscheidung'],
+  ['decision', t('Entscheidung')],
   ['builds', 'Builds'],
   ['items', 'Items'],
   ['matchups', 'Matchups']
@@ -41,7 +42,7 @@ export function ChampionHeader({ champion, opponentName, roles, role, onRole, st
         <div>
           <div className="flex items-baseline gap-3">
             <h1 className="display text-[38px] leading-none">{champion.name}</h1>
-            {opponentName && <span className="display text-[18px] text-mute">gegen {opponentName}</span>}
+            {opponentName && <span className="display text-[18px] text-mute">{t('gegen ')}{opponentName}</span>}
           </div>
           <div className="mt-2.5 flex items-center gap-1">
             {roles.map((option) => (
@@ -62,7 +63,7 @@ export function ChampionHeader({ champion, opponentName, roles, role, onRole, st
                 className="ml-2 flex items-center gap-1 text-[11px] text-mute transition-colors hover:text-bone"
               >
                 <X size={12} />
-                Schließen
+                {t('Schließen')}
               </button>
             )}
           </div>
@@ -70,13 +71,13 @@ export function ChampionHeader({ champion, opponentName, roles, role, onRole, st
 
         {stats && stats.games > 0 && (
           <div className="flex gap-7 rounded-lg border border-white/5 bg-ink/70 px-4 py-2.5 backdrop-blur-sm">
-            <Figure label="Winrate" value={percent(stats.winRate)} hint={`${count(stats.games)} Spiele in dieser Rolle`} />
-            <Figure label="Pickrate" value={percent(stats.pickRate)} />
-            <Figure label="Banrate" value={percent(stats.banRate)} />
+            <Figure label={t("Winrate")} value={percent(stats.winRate)} hint={t`${count(stats.games)} Spiele in dieser Rolle`} />
+            <Figure label={t("Pickrate")} value={percent(stats.pickRate)} />
+            <Figure label={t("Banrate")} value={percent(stats.banRate)} />
             <Figure
-              label={stats.rank ? `Tier · Rang ${stats.rank}` : 'Tier'}
+              label={stats.rank ? t`Tier · Rang ${stats.rank}` : 'Tier'}
               value={stats.tier === null ? '–' : stats.tier === 0 ? 'OP' : stats.tier}
-              hint="OP.GG-Einstufung in dieser Rolle: 1 = stark, 5 = schwach"
+              hint={t("OP.GG-Einstufung in dieser Rolle: 1 = stark, 5 = schwach")}
             />
           </div>
         )}

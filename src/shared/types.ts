@@ -222,4 +222,6 @@ export interface Api {
   /** Sets the two summoner spells in the running champ select. */
   importSpells(ids: number[], flashKey: FlashKey): Promise<SpellResult>
   launchLeague(): Promise<{ ok: boolean; message?: string }>
+  /** Tells the main process which language its messages should be in. */
+  setLanguage(language: 'de' | 'en'): Promise<void>
 }

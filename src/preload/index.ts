@@ -16,7 +16,8 @@ const api: Api = {
   },
   importRunes: (request) => ipcRenderer.invoke('league:import-runes', request),
   importSpells: (ids, flashKey) => ipcRenderer.invoke('league:import-spells', ids, flashKey),
-  launchLeague: () => ipcRenderer.invoke('league:launch')
+  launchLeague: () => ipcRenderer.invoke('league:launch'),
+  setLanguage: (language) => ipcRenderer.invoke('app:language', language)
 }
 
 contextBridge.exposeInMainWorld('api', api)

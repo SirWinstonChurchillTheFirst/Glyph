@@ -1,25 +1,26 @@
 import type { BuildSet, StaticData } from '../../shared/types'
 import { count, pageName } from './lib'
 import { ItemIcon, PickBar, RuneIcon, WinBar, type Detail } from './ui'
+import { t } from '../../shared/i18n'
 
 const TAGS: Record<string, string> = {
-  Armor: 'Rüstung',
-  SpellBlock: 'Magieresistenz',
-  Tenacity: 'Zähigkeit',
-  Health: 'Leben',
-  Damage: 'Angriffsschaden',
-  SpellDamage: 'Fähigkeitsstärke',
-  AttackSpeed: 'Angriffstempo',
-  CriticalStrike: 'Kritische Treffer',
-  AbilityHaste: 'Fähigkeitstempo',
+  Armor: t('Rüstung'),
+  SpellBlock: t('Magieresistenz'),
+  Tenacity: t('Zähigkeit'),
+  Health: t('Leben'),
+  Damage: t('Angriffsschaden'),
+  SpellDamage: t('Fähigkeitsstärke'),
+  AttackSpeed: t('Angriffstempo'),
+  CriticalStrike: t('Kritische Treffer'),
+  AbilityHaste: t('Fähigkeitstempo'),
   Mana: 'Mana',
-  LifeSteal: 'Lebensraub',
-  ArmorPenetration: 'Rüstungsdurchdringung',
-  MagicPenetration: 'Magiedurchdringung',
-  NonbootsMovement: 'Lauftempo',
-  Boots: 'Stiefel',
-  Active: 'Aktiv',
-  Slow: 'Verlangsamung'
+  LifeSteal: t('Lebensraub'),
+  ArmorPenetration: t('Rüstungsdurchdringung'),
+  MagicPenetration: t('Magiedurchdringung'),
+  NonbootsMovement: t('Lauftempo'),
+  Boots: t('Stiefel'),
+  Active: t('Aktiv'),
+  Slow: t('Verlangsamung')
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -47,7 +48,7 @@ export function Drawer({
   onClose: () => void
   onPage: (key: string) => void
 }) {
-  const none = <p className="text-mute">In der aktuellen Auswahl gibt es dazu keine Statistik.</p>
+  const none = <p className="text-mute">{t('In der aktuellen Auswahl gibt es dazu keine Statistik.')}</p>
   let body: React.ReactNode
 
   if (detail.kind === 'item') {
@@ -79,25 +80,25 @@ export function Drawer({
         )}
         {item?.text && <p className="mt-3 text-[12px] text-bone/80 select-text">{item.text}</p>}
 
-        <h3 className="display mt-5 mb-1 text-[14px]">Nutzung</h3>
+        <h3 className="display mt-5 mb-1 text-[14px]">{t('Nutzung')}</h3>
         {!overall && slots.length === 0 && !boots ? (
           none
         ) : (
           <>
             {overall && (
-              <Row label="In allen Spielen">
+              <Row label={t("In allen Spielen")}>
                 <PickBar stat={overall} />
                 <WinBar stat={overall} compact />
               </Row>
             )}
             {boots && (
-              <Row label="Als Stiefel">
+              <Row label={t("Als Stiefel")}>
                 <PickBar stat={boots} />
                 <WinBar stat={boots} compact />
               </Row>
             )}
             {slots.map(({ index, entry }) => (
-              <Row key={index} label={`Als ${index + 1}. Item`}>
+              <Row key={index} label={t`Als ${index + 1}. Item`}>
                 <PickBar stat={entry!} />
                 <WinBar stat={entry!} compact />
               </Row>
@@ -107,7 +108,7 @@ export function Drawer({
 
         {cores.length > 0 && (
           <>
-            <h3 className="display mt-5 mb-1 text-[14px]">Gekauft zusammen mit</h3>
+            <h3 className="display mt-5 mb-1 text-[14px]">{t('Gekauft zusammen mit')}</h3>
             {cores.map((entry) => (
               <div key={entry.ids.join('-')} className="flex items-center justify-between gap-2 border-t border-line py-1.5">
                 <span className="flex gap-1">
@@ -120,7 +121,7 @@ export function Drawer({
             ))}
           </>
         )}
-        <p className="mt-5 text-[11px] text-mute">Durchschnittliche Kaufzeit: liefert die Quelle nicht.</p>
+        <p className="mt-5 text-[11px] text-mute">{t('Durchschnittliche Kaufzeit: liefert die Quelle nicht.')}</p>
       </>
     )
   } else {
@@ -150,19 +151,19 @@ export function Drawer({
         </div>
         {rune?.text && <p className="mt-3 text-[12px] text-bone/80 select-text">{rune.text}</p>}
 
-        <h3 className="display mt-5 mb-1 text-[14px]">Nutzung</h3>
+        <h3 className="display mt-5 mb-1 text-[14px]">{t('Nutzung')}</h3>
         {!primary && !secondary ? (
           none
         ) : (
           <>
             {primary && (
-              <Row label="Im Hauptbaum">
+              <Row label={t("Im Hauptbaum")}>
                 <PickBar stat={primary} />
                 <WinBar stat={primary} compact />
               </Row>
             )}
             {secondary && (
-              <Row label="Im Nebenbaum">
+              <Row label={t("Im Nebenbaum")}>
                 <PickBar stat={secondary} />
                 <WinBar stat={secondary} compact />
               </Row>
@@ -172,7 +173,7 @@ export function Drawer({
 
         {isKeystone && keystones.size > 1 && (
           <>
-            <h3 className="display mt-5 mb-1 text-[14px]">Im Vergleich der Keystones</h3>
+            <h3 className="display mt-5 mb-1 text-[14px]">{t('Im Vergleich der Keystones')}</h3>
             {[...keystones].map(([id, sum]) => (
               <Row key={id} label={data.runes[id]?.name ?? String(id)}>
                 <span className="display text-[12px] text-mute">{count(sum.games)}</span>
@@ -184,7 +185,7 @@ export function Drawer({
 
         {pages.length > 0 && (
           <>
-            <h3 className="display mt-5 mb-1 text-[14px]">Teil dieser Builds</h3>
+            <h3 className="display mt-5 mb-1 text-[14px]">{t('Teil dieser Builds')}</h3>
             {pages.map((page) => (
               <button
                 key={page.key}
@@ -197,7 +198,7 @@ export function Drawer({
             ))}
           </>
         )}
-        <p className="mt-5 text-[11px] text-mute">Beste und schwerste Matchups je Rune: liefert die Quelle nicht.</p>
+        <p className="mt-5 text-[11px] text-mute">{t('Beste und schwerste Matchups je Rune: liefert die Quelle nicht.')}</p>
       </>
     )
   }
@@ -205,9 +206,9 @@ export function Drawer({
   return (
     <aside className="drawer absolute inset-y-0 right-0 z-10 flex w-[330px] flex-col border-l border-line bg-surface shadow-2xl shadow-black/60">
       <div className="flex items-center justify-between border-b border-line px-4 py-2 text-[11px] text-mute">
-        <span className="truncate">{builds ? scope : 'Öffne einen Champion für Statistiken'}</span>
-        <button onClick={onClose} className="shrink-0 pl-3 text-[13px] hover:text-bone" aria-label="Details schließen">
-          Schließen
+        <span className="truncate">{builds ? scope : t('Öffne einen Champion für Statistiken')}</span>
+        <button onClick={onClose} className="shrink-0 pl-3 text-[13px] hover:text-bone" aria-label={t('Details schließen')}>
+          {t('Schließen')}
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-4">{body}</div>

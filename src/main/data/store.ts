@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { StaticData, UpdateResult } from '../../shared/types'
 import { buildStatic, latestVersion } from './updater'
+import { t } from '../../shared/i18n'
 
 const bundledFile = (): string => path.join(app.getAppPath(), 'data', 'static.json')
 const updatedFile = (): string => path.join(app.getPath('userData'), 'data', 'static.json')
@@ -33,7 +34,7 @@ export async function getStatic(): Promise<StaticData> {
       : (updated ?? bundled)
   // A file written by an older app version lacks the fields the analysis needs.
   const usable = newest && Object.values(newest.champions)[0]?.slug && newest.spells ? newest : bundled
-  if (!usable) throw new Error('Keine Spieldaten gefunden. Bitte `npm run update-data` ausführen.')
+  if (!usable) throw new Error(t('Keine Spieldaten gefunden. Bitte `npm run update-data` ausführen.'))
   return (cached = usable)
 }
 

@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { BuildSet, RunePageStat, RuneVariant, StaticData } from '../../shared/types'
 import { percent } from './lib'
 import { RuneIcon, type Detail } from './ui'
+import { t } from '../../shared/i18n'
 
 /** Tree id -> rows of rune ids, as laid out in the client. */
 function useTrees(data: StaticData): Map<number, number[][]> {
@@ -92,7 +93,7 @@ export function RuneTree({
       {tree(page.primaryStyle, primaryRows, variant.perks.slice(0, 4), usage.primary)}
       {tree(page.subStyle, secondaryRows, variant.perks.slice(4), usage.secondary)}
       <div>
-        <div className="mb-2 text-[12px] text-mute">Shards</div>
+        <div className="mb-2 text-[12px] text-mute">{t('Shards')}</div>
         <div className="space-y-2">
           {variant.shards.map((chosen, row) => {
             const options = usage.shards[row]?.length ? usage.shards[row] : [{ id: chosen, pickRate: 0 }]

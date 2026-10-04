@@ -3,6 +3,7 @@
 
 import { interval, winRate } from './analysis'
 import type { BuildSet, ItemSetStat, RunePageStat, RuneVariant, SkillStat, StaticData } from './types'
+import { count, percent, t } from './i18n'
 
 /** What the enemy team brings. Set by the user or derived from the draft. */
 export interface Facing {
@@ -49,13 +50,11 @@ const PATH_LENGTH = 5
 const MIN_SLOT_GAMES = 20
 
 const FACING_TAGS: [flag: keyof Facing, tag: string, gives: string][] = [
-  ['ad', 'Armor', 'Rüstung'],
-  ['ap', 'SpellBlock', 'Magieresistenz'],
-  ['cc', 'Tenacity', 'Zähigkeit']
+  ['ad', 'Armor', t('Rüstung')],
+  ['ap', 'SpellBlock', t('Magieresistenz')],
+  ['cc', 'Tenacity', t('Zähigkeit')]
 ]
 
-export const percent = (value: number): string => `${(value * 100).toFixed(1).replace('.', ',')} %`
-const count = (value: number): string => value.toLocaleString('de-DE')
 
 function pickPage(set: BuildSet, data: StaticData): Recommendation['page'] | null {
   const mostPlayed = set.pages[0]
@@ -72,21 +71,21 @@ function pickPage(set: BuildSet, data: StaticData): Recommendation['page'] | nul
   const reasons: string[] = []
   if (best === mostPlayed) {
     reasons.push(
-      `Meistgespielt: ${percent(best.pickRate)} der Spiele, ${percent(winRate(best))} Winrate bei ${count(best.games)} Spielen.`
+      t`Meistgespielt: ${percent(best.pickRate)} der Spiele, ${percent(winRate(best))} Winrate bei ${count(best.games)} Spielen.`
     )
   } else {
     reasons.push(
-      `${percent(winRate(best))} Winrate bei ${count(best.games)} Spielen. Selbst am unteren Rand des 95-%-Bereichs (${percent(low(best))}) liegt sie vor der meistgespielten Seite ${name(mostPlayed)} (${percent(low(mostPlayed))}).`,
-      `Wird seltener gespielt: ${percent(best.pickRate)} gegenüber ${percent(mostPlayed.pickRate)}.`
+      t`${percent(winRate(best))} Winrate bei ${count(best.games)} Spielen. Selbst am unteren Rand des 95-%-Bereichs (${percent(low(best))}) liegt sie vor der meistgespielten Seite ${name(mostPlayed)} (${percent(low(mostPlayed))}).`,
+      t`Wird seltener gespielt: ${percent(best.pickRate)} gegenüber ${percent(mostPlayed.pickRate)}.`
     )
   }
   if (next) {
-    reasons.push(`Nächste Alternative: ${name(next)} mit ${percent(winRate(next))} bei ${count(next.games)} Spielen.`)
+    reasons.push(t`Nächste Alternative: ${name(next)} mit ${percent(winRate(next))} bei ${count(next.games)} Spielen.`)
   }
 
   const clear = next !== undefined && low(best) > interval(next.wins, next.games).high
   const strength = clear ? 'clear' : best.games >= SOLID_SAMPLE ? 'recommended' : 'thin'
-  if (strength === 'thin') reasons.push(`Nur ${count(best.games)} Spiele – die Aussage ist entsprechend unsicher.`)
+  if (strength === 'thin') reasons.push(t`Nur ${count(best.games)} Spiele – die Aussage ist entsprechend unsicher.`)
 
   return { pick: best, variant: best.variants[0], reasons, strength, adapted: false }
 }
@@ -102,7 +101,7 @@ function situational(
   const match = wanted.find(([, tag]) => tags.includes(tag))
   if (!match) return null
   const [flag, , gives] = match
-  return { flag, reason: `Gibt ${gives}. ${situation[flag]}` }
+  return { flag, reason: t`Gibt ${gives}. ${situation[flag]}` }
 }
 
 /** One sentence per flag saying where it comes from, e.g. "Gegner mit physischem Schaden: Zed, Jinx." */
@@ -121,11 +120,11 @@ function pickItem(
   if (!usual) return null
   const itemName = (option: ItemSetStat): string => data.items[option.ids[0]]?.name ?? `Item ${option.ids[0]}`
   const usage = (option: ItemSetStat): string =>
-    `${percent(option.pickRate)} der Spiele, ${percent(winRate(option))} Winrate bei ${count(option.games)} Spielen`
+    t`${percent(option.pickRate)} der Spiele, ${percent(winRate(option))} Winrate bei ${count(option.games)} Spielen`
   const wanted = FACING_TAGS.filter(([flag]) => open.has(flag))
   const usualReason = fromCombination
-    ? `Teil der meistgekauften Dreier-Kombination. Insgesamt gekauft in ${usage(usual)}.`
-    : `${label} am häufigsten gekauft: ${usage(usual)}.`
+    ? t`Teil der meistgekauften Dreier-Kombination. Insgesamt gekauft in ${usage(usual)}.`
+    : t`${label} am häufigsten gekauft: ${usage(usual)}.`
 
   // The usual pick may already answer the situation.
   const usualFit = situational(usual, wanted, data, situation)
@@ -151,8 +150,8 @@ function pickItem(
       adapted: true,
       reasons: [
         fit.reason,
-        `${label} in ${usage(option)}.`,
-        `Ohne diese Situation wäre es ${itemName(usual)} (${percent(usual.pickRate)}).`
+        t`${label} in ${usage(option)}.`,
+        t`Ohne diese Situation wäre es ${itemName(usual)} (${percent(usual.pickRate)}).`
       ]
     }
   }
@@ -174,8 +173,8 @@ export function recommend(
   const itemName = (id: number): string => data.items[id]?.name ?? `Item ${id}`
   const changes: string[] = []
 
-  const boots = pickItem(set.boots, 'Als Stiefel', active(), data, situation)
-  if (boots?.adapted) changes.push(`Stiefel: ${itemName(boots.pick.ids[0])} statt ${itemName(set.boots[0].ids[0])}`)
+  const boots = pickItem(set.boots, t('Als Stiefel'), active(), data, situation)
+  if (boots?.adapted) changes.push(t`Stiefel: ${itemName(boots.pick.ids[0])} statt ${itemName(set.boots[0].ids[0])}`)
 
   // Each situation flag changes at most one item, in the earliest slot that offers a fitting one.
   const open = active()
@@ -185,12 +184,12 @@ export function recommend(
     const options = slot.filter((option) => !taken.has(option.ids[0]) && !isBoots(option))
     // Late slots are reached in few games; below the threshold the rest is filled from overall usage.
     if (!options[0] || options[0].games < MIN_SLOT_GAMES) break
-    const choice = pickItem(options, `Als ${index + 1}. Item`, open, data, situation, set.quick === true && index < 3)
+    const choice = pickItem(options, t`Als ${index + 1}. Item`, open, data, situation, set.quick === true && index < 3)
     if (!choice) break
     taken.add(choice.pick.ids[0])
     path.push(choice)
     if (choice.adapted) {
-      changes.push(`${index + 1}. Item: ${itemName(choice.pick.ids[0])} statt ${itemName(options[0].ids[0])}`)
+      changes.push(t`${index + 1}. Item: ${itemName(choice.pick.ids[0])} statt ${itemName(options[0].ids[0])}`)
     }
   }
 
@@ -205,7 +204,7 @@ export function recommend(
       pick: option,
       adapted: false,
       reasons: [
-        `Für diesen Kauf-Slot gibt es zu wenige Spiele. Unter den übrigen Items am häufigsten gekauft: ${percent(option.pickRate)} der Spiele, ${percent(winRate(option))} Winrate bei ${count(option.games)} Spielen.`
+        t`Für diesen Kauf-Slot gibt es zu wenige Spiele. Unter den übrigen Items am häufigsten gekauft: ${percent(option.pickRate)} der Spiele, ${percent(winRate(option))} Winrate bei ${count(option.games)} Spielen.`
       ]
     })
   }

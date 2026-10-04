@@ -2,6 +2,7 @@ import { AlertCircle, Check, Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import type { FlashKey, ImportRequest, ItemSetStat, StaticData } from '../../shared/types'
 import { percent, spellIconUrl } from './lib'
+import { t } from '../../shared/i18n'
 
 type Phase =
   | { step: 'idle' | 'busy' | 'copied' }
@@ -71,7 +72,7 @@ export function ImportButton({ request, text, connected, note, spells, canSpells
           } else setPhase({ step: 'error', message: result.message })
           return
         }
-        done.push(`Seite „${result.pageName}“ ist im Client aktiv.`)
+        done.push(t`Seite „${result.pageName}“ ist im Client aktiv.`)
       }
       if (doSpells) {
         const result = await window.api.importSpells(spells.ids, flashKey)
@@ -79,11 +80,11 @@ export function ImportButton({ request, text, connected, note, spells, canSpells
           setPhase({ step: 'error', message: [...done, result.message].join(' ') })
           return
         }
-        done.push('Beschwörerzauber gesetzt.')
+        done.push(t('Beschwörerzauber gesetzt.'))
       }
       setPhase({ step: 'done', message: done.join(' ') })
     } catch {
-      setPhase({ step: 'error', message: 'Der Import ist unerwartet fehlgeschlagen.' })
+      setPhase({ step: 'error', message: t('Der Import ist unerwartet fehlgeschlagen.') })
     }
   }
 
@@ -92,47 +93,52 @@ export function ImportButton({ request, text, connected, note, spells, canSpells
       await navigator.clipboard.writeText(text)
       setPhase({ step: 'copied' })
     } catch {
-      setPhase({ step: 'error', message: 'Kopieren in die Zwischenablage ist fehlgeschlagen.' })
+      setPhase({ step: 'error', message: t('Kopieren in die Zwischenablage ist fehlgeschlagen.') })
     }
   }
 
   if (phase.step === 'confirm') {
     return (
       <div className="space-y-2">
-        <p className="text-[12px] text-mute">Keine freie Runenseite. „{phase.page.name}“ überschreiben?</p>
+        <p className="text-[12px] text-mute">{t('Keine freie Runenseite. „')}{phase.page.name}{t('“ überschreiben?')}</p>
         <div className="flex gap-2">
           <button className="primary h-9 px-5" onClick={() => void run(phase.page.id)}>
-            Überschreiben
+            {t('Überschreiben')}
           </button>
           <button className="card h-9 px-4 text-mute hover:text-bone" onClick={() => setPhase({ step: 'idle' })}>
-            Abbrechen
+            {t('Abbrechen')}
           </button>
         </div>
       </div>
     )
   }
 
-  const what = doRunes && doSpells ? 'Runen und Zauber' : doSpells ? 'Zauber' : 'Runen'
+  const [importLabel, importedLabel] =
+    doRunes && doSpells
+      ? [t('Runen und Zauber importieren'), t('Runen und Zauber importiert')]
+      : doSpells
+        ? [t('Zauber importieren'), t('Zauber importiert')]
+        : [t('Runen importieren'), t('Runen importiert')]
   const [icon, label] =
     phase.step === 'busy'
-      ? [<Loader2 size={15} className="spin" />, 'Importiere …']
+      ? [<Loader2 size={15} className="spin" />, t('Importiere …')]
       : phase.step === 'done'
-        ? [<Check size={16} />, `${what} importiert`]
+        ? [<Check size={16} />, importedLabel]
         : phase.step === 'error'
-          ? [<AlertCircle size={15} />, 'Erneut versuchen']
-          : [<Download size={15} />, `${what} importieren`]
+          ? [<AlertCircle size={15} />, t('Erneut versuchen')]
+          : [<Download size={15} />, importLabel]
 
   const hint =
     phase.step === 'error' || phase.step === 'done'
       ? phase.message
       : phase.step === 'copied'
-        ? 'Runen als Text kopiert.'
+        ? t('Runen als Text kopiert.')
         : !want.runes && !want.spells
-          ? 'Wähle aus, was importiert werden soll.'
+          ? t('Wähle aus, was importiert werden soll.')
           : !connected && !doSpells
-            ? (note ?? 'League ist nicht verbunden.')
+            ? (note ?? t('League ist nicht verbunden.'))
             : want.spells && spells && !canSpells && connected
-              ? 'Zauber lassen sich nur im Champion Select setzen – importiert werden die Runen.'
+              ? t('Zauber lassen sich nur im Champion Select setzen – importiert werden die Runen.')
               : ''
 
   const option = 'flex cursor-pointer items-center gap-1.5 text-[12px]'
@@ -148,17 +154,17 @@ export function ImportButton({ request, text, connected, note, spells, canSpells
             onChange={(event) => choose({ ...want, runes: event.target.checked })}
             className="accent-[#d6ad62]"
           />
-          Runen
+          {t('Runen')}
         </label>
         {spells && (
-          <label className={option} title={`${percent(spells.pickRate, 0)} der Spiele`}>
+          <label className={option} title={t`${percent(spells.pickRate, 0)} der Spiele`}>
             <input
               type="checkbox"
               checked={want.spells}
               onChange={(event) => choose({ ...want, spells: event.target.checked })}
               className="accent-[#d6ad62]"
             />
-            Beschwörerzauber
+            {t('Beschwörerzauber')}
             <span className="ml-0.5 flex gap-1">
               {spells.ids.map((id) => (
                 <img
@@ -174,7 +180,7 @@ export function ImportButton({ request, text, connected, note, spells, canSpells
         )}
         {spells && want.spells && hasFlash && (
           <span className="flex items-center gap-1 text-[12px] text-mute">
-            Flash auf
+            {t('Flash auf')}
             {(['auto', 'D', 'F'] as const).map((key) => (
               <button
                 key={key}
@@ -182,12 +188,12 @@ export function ImportButton({ request, text, connected, note, spells, canSpells
                   setFlashKey(key)
                   save(FLASH_KEY, key)
                 }}
-                title={key === 'auto' ? 'Flash bleibt auf der Taste, auf der er gerade liegt' : undefined}
+                title={key === 'auto' ? t('Flash bleibt auf der Taste, auf der er gerade liegt') : undefined}
                 className={`rounded px-1.5 py-0.5 transition-colors ${
                   flashKey === key ? 'bg-raised text-bone' : 'hover:text-bone'
                 }`}
               >
-                {key === 'auto' ? 'wie bisher' : key}
+                {key === 'auto' ? t('wie bisher') : key}
               </button>
             ))}
           </span>
@@ -207,7 +213,7 @@ export function ImportButton({ request, text, connected, note, spells, canSpells
           className="text-[12px] text-mute underline-offset-2 hover:text-bone hover:underline"
           onClick={() => void copy()}
         >
-          Als Text kopieren
+          {t('Als Text kopieren')}
         </button>
         <span className={`text-[12px] ${phase.step === 'error' ? 'text-down' : 'text-mute'}`}>{hint}</span>
       </div>

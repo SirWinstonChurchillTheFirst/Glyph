@@ -1,6 +1,7 @@
 // ANALYSIS layer: pure functions over normalised statistics. No I/O, no UI.
 
 import type { BuildSet, Role, RunePageStat, RuneVariant, Stat, StaticData } from './types'
+import { decimal, t } from './i18n'
 
 export const winRate = (stat: { games: number; wins: number }): number =>
   stat.games > 0 ? stat.wins / stat.games : 0
@@ -126,7 +127,7 @@ const CLASS_METRICS: [id: string, label: string, classes: string[]][] = [
 const RATING_METRICS: [id: 'toughness' | 'control' | 'mobility', label: string][] = [
   ['toughness', 'Frontline'],
   ['control', 'Crowd Control'],
-  ['mobility', 'Mobilität']
+  ['mobility', t('Mobilität')]
 ]
 
 export function analyzeTeam(championIds: number[], data: StaticData): TeamAnalysis {
@@ -141,7 +142,7 @@ export function analyzeTeam(championIds: number[], data: StaticData): TeamAnalys
       id,
       label,
       level: average < 1.6 ? 'low' : average < 2.2 ? 'medium' : 'high',
-      basis: `Ø ${average.toFixed(1).replace('.', ',')} von 3 über ${rated.length} Champions`
+      basis: t`Ø ${decimal(average)} von 3 über ${rated.length} Champions`
     })
   }
   for (const [id, label, classes] of CLASS_METRICS) {
@@ -150,7 +151,7 @@ export function analyzeTeam(championIds: number[], data: StaticData): TeamAnalys
       id,
       label,
       level: matching.length === 0 ? 'low' : matching.length === 1 ? 'medium' : 'high',
-      basis: matching.length > 0 ? matching.map((champion) => champion.name).join(', ') : 'kein Champion dieser Klasse'
+      basis: matching.length > 0 ? matching.map((champion) => champion.name).join(', ') : t('kein Champion dieser Klasse')
     })
   }
 

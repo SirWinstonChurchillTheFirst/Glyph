@@ -8,6 +8,8 @@
 // Class lines name the fields; the last line is one expression of class calls, arrays,
 // JSON strings, numbers and literals. The result is plain objects keyed by field name.
 
+import { t } from '../../shared/i18n'
+
 export function parseCompact(text: string): unknown {
   const classes = new Map<string, string[]>()
   const lines = text.split('\n')
@@ -21,7 +23,7 @@ export function parseCompact(text: string): unknown {
   const source = lines.slice(line).join('\n')
   let at = 0
   const fail = (): never => {
-    throw new Error(`Unerwartetes Datenformat an Position ${at}.`)
+    throw new Error(t`Unerwartetes Datenformat an Position ${at}.`)
   }
   const skip = (): void => {
     while (at < source.length && /\s/.test(source[at])) at++

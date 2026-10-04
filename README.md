@@ -5,7 +5,7 @@
 Glyph is a small Windows app for League of Legends. It notices your champion select, reads both teams and shows which
 runes and items to take in exactly this game. Every recommendation says what it rests on, and every win rate is drawn
 together with its 95 % range instead of an invented “confidence” score. One click imports the runes and summoner spells into the client.
-The interface is in **German**; champion, item and rune names are English.
+Glyph speaks **German** and **English** (switch under the gear icon); champion, item and rune names are always English.
 
 > **Unofficial fan project.** Glyph isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games
 > or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties
@@ -15,7 +15,7 @@ The interface is in **German**; champion, item and rune names are English.
 
 ## What Glyph does
 
-- **Decision:** the recommended rune page, item path, boots and skill order for your lane opponent, with a “Warum?”
+- **Decision:** the recommended rune page, item path, boots and skill order for your lane opponent, with a “Why?”
   (why) under each pick. *What you change in this match* lists every deviation from the usual build.
 - **Draft:** both teams, the lane opponent picked out automatically, and a side-by-side team comparison (damage type,
   frontline, crowd control, engage, peel, poke, burst).
@@ -60,7 +60,7 @@ There is no guarantee from Riot for any third-party tool, though – you use it 
 See [Data](#data). Statistics are fetched when you open a champion and kept for 24 hours, so Glyph needs an internet
 connection.
 
-**Why does it say “liefert die Quelle nicht” (not provided by the source) in some places?**
+**Why does it say “not provided by the source” in some places?**
 Because Glyph doesn't make numbers up. Item purchase times, early/mid/late ratings per build and per-phase matchup data
 aren't in the statistics it uses, so it says so instead of guessing.
 
@@ -90,7 +90,7 @@ No, Windows 10/11 (64-bit) only.
 
 How a recommendation is made:
 
-- **Runes:** among the pages with at least 30 games, the one whose 95 % range has the highest lower end. “Klarer
+- **Runes:** among the pages with at least 30 games, the one whose 95 % range has the highest lower end. “Clear
   Favorit” (clear favourite) means its whole range lies above the next page's.
 - **Items:** the most bought item per slot. If the enemy team is heavy on physical damage, magic damage or crowd control
   (taken from the draft, or ticked by hand), at most one item and the boots are swapped per flag – only for an option
@@ -107,6 +107,7 @@ npm run dev          # development with hot reload
 npm run dist         # dist/Glyph-Setup.exe, prints its SHA-256
 npm run update-data  # refresh data/static.json for a new patch
 npm run icon         # redraw build/icon.png
+npm run check-i18n   # every interface text has an English entry
 ```
 
 The code is split into four layers: data (`src/main/data`, `src/main/league`), analysis (`src/shared/analysis.ts`),
