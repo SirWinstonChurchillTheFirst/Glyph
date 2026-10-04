@@ -30,6 +30,7 @@ export interface Recommendation {
   boots: Choice<ItemSetStat> | null
   path: Choice<ItemSetStat>[]
   skill: SkillStat | null
+  spells: ItemSetStat | null
   /** Deviations from the default build caused by the situation. */
   changes: string[]
   /** Usual picks that already answer the situation, so nothing has to change. */
@@ -213,5 +214,14 @@ export function recommend(
     .filter((choice) => choice.fits)
     .map((choice) => `${itemName(choice.pick.ids[0])}: ${choice.reasons[1]}`)
 
-  return { page, starter: set.starters[0] ?? null, boots, path, skill: set.skills[0] ?? null, changes, covered }
+  return {
+    page,
+    starter: set.starters[0] ?? null,
+    boots,
+    path,
+    skill: set.skills[0] ?? null,
+    spells: set.spells.find((pair) => pair.ids.length === 2) ?? null,
+    changes,
+    covered
+  }
 }

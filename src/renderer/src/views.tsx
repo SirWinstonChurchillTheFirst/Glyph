@@ -19,6 +19,8 @@ export interface View {
   connected: boolean
   /** Why runes cannot be imported right now, when it is not simply a missing connection. */
   importNote?: string
+  /** Summoner spells can only be set while champ select is running. */
+  canSpells: boolean
   onOpen: (detail: Detail) => void
   onOpponent: (id: number | null) => void
   /** Both teams' composition during champ select. */
@@ -182,6 +184,9 @@ export function DecisionView(view: View) {
               text={runesAsText(title, page.pick, page.variant, data)}
               connected={view.connected}
               note={view.importNote}
+              spells={rec.spells}
+              canSpells={view.canSpells}
+              data={data}
             />
           </div>
           <div className="mt-4 border-t border-line pt-3">
@@ -424,6 +429,9 @@ export function BuildsView(view: View) {
                   text={runesAsText(title, page, variant, data)}
                   connected={view.connected}
                   note={view.importNote}
+                  spells={recommendation.spells}
+                  canSpells={view.canSpells}
+                  data={data}
                 />
               </div>
             </div>

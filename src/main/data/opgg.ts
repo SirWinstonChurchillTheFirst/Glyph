@@ -141,7 +141,7 @@ async function limited<T>(task: () => Promise<T>): Promise<T> {
 // ---------- Cache ----------
 
 const memory = new Map<string, Promise<unknown>>()
-const cacheFile = (key: string): string => path.join(app.getPath('userData'), 'stats-cache', `${key}.json`)
+const cacheFile = (key: string): string => path.join(app.getPath('userData'), 'stats-cache-2', `${key}.json`)
 
 function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
   const existing = memory.get(key)
@@ -286,6 +286,7 @@ function parseGuide(raw: any, championId: number, role: Role, opponentId: number
       .map((slot: any) => sets(slot.items)),
     items: sets(data.last_items),
     skills: (data.skills ?? []).map((entry: any) => ({ ...stat(entry), order: entry.order ?? [] })),
+    spells: sets(data.summoner_spells),
     lane: {
       tip: data.opponent_champion_tip || null,
       advantage: side(data.lane_advantage_champion),
@@ -342,7 +343,8 @@ const ANALYSIS_FIELDS = [
   `data.fifth_items[].${SET_FIELDS}`,
   `data.sixth_items[].${SET_FIELDS}`,
   `data.last_items[].${SET_FIELDS}`,
-  'data.skills.{order[],pick_rate,play,win}'
+  'data.skills.{order[],pick_rate,play,win}',
+  `data.summoner_spells.${SET_FIELDS}`
 ]
 
 /** The champion's overall build in one request: far less detail than a matchup, but quick. */
@@ -401,6 +403,7 @@ function overview(data: StaticData, championId: number, role: Role): Promise<Bui
         ),
         items,
         skills: source.skills?.order ? [{ ...stat(source.skills), order: source.skills.order }] : [],
+        spells: sets(source.summoner_spells ? [source.summoner_spells] : []),
         lane: null,
         perOpponent: []
       }

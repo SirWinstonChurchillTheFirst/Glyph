@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
 import path from 'node:path'
-import type { ImportRequest, Role } from '../shared/types'
+import type { FlashKey, ImportRequest, Role } from '../shared/types'
 import { getBuilds, getProfile, warmUp } from './data/opgg'
 import { checkUpdate, getStatic, updateStatic } from './data/store'
 import { LeagueService } from './league/LeagueService'
@@ -77,6 +77,9 @@ if (!app.requestSingleInstanceLock()) {
     )
     ipcMain.handle('league:state', () => watcher.state)
     ipcMain.handle('league:import-runes', (_event, request: ImportRequest) => league.importRunes(request))
+    ipcMain.handle('league:import-spells', (_event, ids: number[], flashKey: FlashKey) =>
+      league.importSpells(ids, flashKey)
+    )
     ipcMain.handle('league:launch', () => league.launchLeague())
 
     createWindow()

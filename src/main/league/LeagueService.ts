@@ -1,10 +1,20 @@
 import { spawn } from 'node:child_process'
-import type { ChampSelectState, DraftSlot, ImportRequest, ImportResult, Role } from '../../shared/types'
+import type {
+  ChampSelectState,
+  DraftSlot,
+  FlashKey,
+  ImportRequest,
+  ImportResult,
+  Role,
+  SpellResult
+} from '../../shared/types'
 import { discoverClient, findRiotClient, type LcuCredentials } from './credentials'
 import { LcuError, lcuRequest } from './lcu'
 
 /** Rune pages created by this app start with this, so they can be reused instead of piling up. */
 export const PAGE_PREFIX = 'Glyph'
+
+const FLASH = 4
 
 const POSITIONS: Record<string, Role> = {
   top: 'top',
@@ -235,6 +245,39 @@ export class LeagueService {
         code: 'REQUEST_FAILED',
         message: `Der Client hat den Import abgelehnt (${detail}).`
       }
+    }
+  }
+
+  /**
+   * Sets the player's two summoner spells in the running champ select. Flash goes on the chosen
+   * key; with `auto`, a spell the player already has stays on its key.
+   */
+  async importSpells(ids: number[], flashKey: FlashKey): Promise<SpellResult> {
+    if (ids.length !== 2) return { ok: false, message: 'Für diesen Champion liegen keine Beschwörerzauber vor.' }
+    try {
+      const current = await this.request<{ spell1Id?: number; spell2Id?: number }>(
+        'GET',
+        '/lol-champ-select/v1/session/my-selection'
+      )
+      let [first, second] = ids
+      const flashFirst = first === FLASH ? true : second === FLASH ? false : null
+      const swap =
+        flashFirst !== null && flashKey !== 'auto'
+          ? flashFirst !== (flashKey === 'D')
+          : current.spell2Id === first || current.spell1Id === second
+      if (swap) [first, second] = [second, first]
+
+      await this.request('PATCH', '/lol-champ-select/v1/session/my-selection', { spell1Id: first, spell2Id: second })
+      return { ok: true }
+    } catch (error) {
+      if (error instanceof LcuError && error.status === 0) {
+        return { ok: false, message: 'Der League Client ist nicht erreichbar.' }
+      }
+      if (error instanceof LcuError && error.status === 404) {
+        return { ok: false, message: 'Beschwörerzauber lassen sich nur im Champion Select setzen.' }
+      }
+      const detail = error instanceof Error ? error.message : String(error)
+      return { ok: false, message: `Der Client hat die Zauber abgelehnt (${detail}).` }
     }
   }
 

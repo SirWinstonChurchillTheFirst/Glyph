@@ -32,7 +32,7 @@ export async function getStatic(): Promise<StaticData> {
         : bundled
       : (updated ?? bundled)
   // A file written by an older app version lacks the fields the analysis needs.
-  const usable = newest && Object.values(newest.champions)[0]?.slug ? newest : bundled
+  const usable = newest && Object.values(newest.champions)[0]?.slug && newest.spells ? newest : bundled
   if (!usable) throw new Error('Keine Spieldaten gefunden. Bitte `npm run update-data` ausführen.')
   return (cached = usable)
 }

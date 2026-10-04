@@ -79,17 +79,18 @@ export async function latestVersion(): Promise<string> {
 export async function buildStatic(): Promise<StaticData> {
   const version = await latestVersion()
   const base = `${DDRAGON}/cdn/${version}/data/en_US`
-  const [champions, trees, items, meraki] = await Promise.all([
+  const [champions, trees, items, spells, meraki] = await Promise.all([
     getJson<{ data: Record<string, DdChampion> }>(`${base}/champion.json`),
     getJson<RuneTree[]>(`${base}/runesReforged.json`),
     getJson<{
       data: Record<string, { name: string; description: string; tags?: string[]; gold?: { total: number } }>
     }>(`${base}/item.json`),
+    getJson<{ data: Record<string, { key: string; name: string; image: { full: string } }> }>(`${base}/summoner.json`),
     // Optional: without it the team analysis has less to work with, the rest is unaffected.
     getJson<Record<string, MerakiChampion>>(MERAKI).catch(() => ({}) as Record<string, MerakiChampion>)
   ])
 
-  const data: StaticData = { patch: version, champions: {}, styles: {}, runes: {}, shards: {}, items: {} }
+  const data: StaticData = { patch: version, champions: {}, styles: {}, runes: {}, shards: {}, items: {}, spells: {} }
   const merakiById = new Map(Object.values(meraki).map((champion) => [String(champion.id), champion]))
 
   for (const champion of Object.values(champions.data)) {
@@ -138,6 +139,9 @@ export async function buildStatic(): Promise<StaticData> {
       tags: item.tags ?? [],
       text: plain(item.description)
     }
+  }
+  for (const spell of Object.values(spells.data)) {
+    data.spells[spell.key] = { name: spell.name, icon: spell.image.full }
   }
   return data
 }

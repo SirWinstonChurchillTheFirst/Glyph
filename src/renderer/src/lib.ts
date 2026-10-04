@@ -7,6 +7,7 @@ export const splashUrl = (key: string): string => `${CDN}/img/champion/splash/${
 export const championIconUrl = (patch: string, key: string): string => `${CDN}/${patch}/img/champion/${key}.png`
 export const itemIconUrl = (patch: string, id: number): string => `${CDN}/${patch}/img/item/${id}.png`
 export const perkIconUrl = (icon: string): string => `${CDN}/img/${icon}`
+export const spellIconUrl = (patch: string, icon: string): string => `${CDN}/${patch}/img/spell/${icon}`
 
 export const ROLE_LABELS: Record<Role, string> = {
   top: 'Top',

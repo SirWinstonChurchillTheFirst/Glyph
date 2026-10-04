@@ -15,6 +15,7 @@ const api: Api = {
     return () => ipcRenderer.removeListener('league:state', handler)
   },
   importRunes: (request) => ipcRenderer.invoke('league:import-runes', request),
+  importSpells: (ids, flashKey) => ipcRenderer.invoke('league:import-spells', ids, flashKey),
   launchLeague: () => ipcRenderer.invoke('league:launch')
 }
 

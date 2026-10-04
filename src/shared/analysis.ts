@@ -86,6 +86,7 @@ export function aggregate(sets: BuildSet[], coverage: number): BuildSet {
     ),
     items: merge(sets.map((set) => set.items), idsKey),
     skills: merge(sets.map((set) => set.skills), (skill) => skill.order.join('')),
+    spells: merge(sets.map((set) => set.spells), idsKey),
     lane: null,
     perOpponent: sets.map((set) => ({
       opponentId: set.opponentIds[0],

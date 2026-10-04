@@ -49,6 +49,8 @@ export interface StaticData {
   runes: Record<string, RuneInfo>
   shards: Record<string, { name: string; icon: string }>
   items: Record<string, ItemInfo>
+  /** Summoner spells; `icon` is the file name under the patch's spell images. */
+  spells: Record<string, { name: string; icon: string }>
 }
 
 // ---------- Statistics (from the statistics source, normalised) ----------
@@ -120,6 +122,8 @@ export interface BuildSet {
   /** Item usage regardless of slot. */
   items: ItemSetStat[]
   skills: SkillStat[]
+  /** Summoner spell pairs; the order inside a pair carries no meaning. */
+  spells: ItemSetStat[]
   lane: LaneVerdict | null
   /** For a sum: how each build did against each included opponent. */
   perOpponent: { opponentId: number; pages: { key: string; games: number; wins: number }[] }[]
@@ -193,6 +197,11 @@ export type ImportResult =
       replaceable?: { id: number; name: string }
     }
 
+/** Which key Flash goes on; `auto` keeps whatever the player has now. */
+export type FlashKey = 'auto' | 'D' | 'F'
+
+export type SpellResult = { ok: true } | { ok: false; message: string }
+
 export type UpdateResult = { ok: true; data: StaticData } | { ok: false; message: string }
 
 /** Exposed to the renderer as `window.api`. The UI never talks to the LCU or the web itself. */
@@ -210,5 +219,7 @@ export interface Api {
   getState(): Promise<LeagueState>
   onState(listener: (state: LeagueState) => void): () => void
   importRunes(request: ImportRequest): Promise<ImportResult>
+  /** Sets the two summoner spells in the running champ select. */
+  importSpells(ids: number[], flashKey: FlashKey): Promise<SpellResult>
   launchLeague(): Promise<{ ok: boolean; message?: string }>
 }

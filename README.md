@@ -4,7 +4,7 @@
 
 Glyph is a small Windows app for League of Legends. It notices your champion select, reads both teams and shows which
 runes and items to take in exactly this game. Every recommendation says what it rests on, and every win rate is drawn
-together with its 95 % range instead of an invented “confidence” score. One click imports the runes into the client.
+together with its 95 % range instead of an invented “confidence” score. One click imports the runes and summoner spells into the client.
 The interface is in **German**; champion, item and rune names are English.
 
 > **Unofficial fan project.** Glyph isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games
@@ -25,7 +25,8 @@ The interface is in **German**; champion, item and rune names are English.
   three-item combinations. Click any item or rune for details.
 - **Matchups:** best, hardest and all matchups; a click switches the whole analysis to that opponent.
 - **Search** (Ctrl K): a champion, “Bard vs Brand”, an item, a rune or a build.
-- **Rune import** into the League client, without touching your other pages.
+- **Import** of runes, summoner spells or both into the League client, without touching your other rune pages. You
+  choose what is imported and which key Flash goes on.
 
 | Builds | Items |
 |---|---|
@@ -50,8 +51,9 @@ download wasn't tampered with, compare its checksum with the one in the release 
 `Get-FileHash .\Glyph-Setup.exe` in PowerShell.
 
 **Can I get banned for using it?**
-Glyph only reads the champion select and writes a rune page through the League client's own local interface, the same
-way other rune importers do. It does nothing during a game, picks or bans nothing and never touches the game itself.
+Glyph only reads the champion select and, when you click import, writes a rune page and your two summoner spells
+through the League client's own local interface, the same way other importers do. It does nothing during a game, picks
+or bans nothing and never touches the game itself.
 There is no guarantee from Riot for any third-party tool, though – you use it at your own risk.
 
 **Where do the numbers come from?**
