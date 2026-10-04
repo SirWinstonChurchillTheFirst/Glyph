@@ -109,7 +109,9 @@ function pickItem(
   label: string,
   open: Set<keyof Facing>,
   data: StaticData,
-  situation: Situation
+  situation: Situation,
+  /** The slot is only known as part of the most common combination, not by its own options. */
+  fromCombination = false
 ): Choice<ItemSetStat> | null {
   const usual = options[0]
   if (!usual) return null
@@ -117,6 +119,9 @@ function pickItem(
   const usage = (option: ItemSetStat): string =>
     `${percent(option.pickRate)} der Spiele, ${percent(winRate(option))} Winrate bei ${count(option.games)} Spielen`
   const wanted = FACING_TAGS.filter(([flag]) => open.has(flag))
+  const usualReason = fromCombination
+    ? `Teil der meistgekauften Dreier-Kombination. Insgesamt gekauft in ${usage(usual)}.`
+    : `${label} am häufigsten gekauft: ${usage(usual)}.`
 
   // The usual pick may already answer the situation.
   const usualFit = situational(usual, wanted, data, situation)
@@ -126,7 +131,7 @@ function pickItem(
       pick: usual,
       adapted: false,
       fits: true,
-      reasons: [`${label} am häufigsten gekauft: ${usage(usual)}.`, usualFit.reason]
+      reasons: [usualReason, usualFit.reason]
     }
   }
 
@@ -147,7 +152,7 @@ function pickItem(
       ]
     }
   }
-  return { pick: usual, adapted: false, reasons: [`${label} am häufigsten gekauft: ${usage(usual)}.`] }
+  return { pick: usual, adapted: false, reasons: [usualReason] }
 }
 
 export function recommend(
@@ -174,7 +179,7 @@ export function recommend(
   const taken = new Set<number>()
   set.slots.slice(0, PATH_LENGTH).forEach((slot, index) => {
     const options = slot.filter((option) => !taken.has(option.ids[0]) && !isBoots(option))
-    const choice = pickItem(options, `Als ${index + 1}. Item`, open, data, situation)
+    const choice = pickItem(options, `Als ${index + 1}. Item`, open, data, situation, set.quick === true && index < 3)
     if (!choice) return
     taken.add(choice.pick.ids[0])
     path.push(choice)

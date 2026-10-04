@@ -1,6 +1,6 @@
 {
   "name": "glyph",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Decision help for League of Legends champion select: runes, items and matchups, each with its reasons.",
   "main": "./out/main/index.js",
   "private": true,

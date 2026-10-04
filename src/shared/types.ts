@@ -104,6 +104,11 @@ export interface BuildSet {
   sample: number
   /** For a sum: share of all the champion's games that the included matchups cover. */
   coverage: number | null
+  /**
+   * The champion's overall statistics from a single request: one rune page, the most common
+   * item combination, few alternatives. Shown first; the detailed sets replace it on demand.
+   */
+  quick?: boolean
   pages: RunePageStat[]
   runeUse: { primary: RuneUse[]; secondary: RuneUse[]; shards: RuneUse[][] }
   starters: ItemSetStat[]
@@ -192,9 +197,13 @@ export type UpdateResult = { ok: true; data: StaticData } | { ok: false; message
 /** Exposed to the renderer as `window.api`. The UI never talks to the LCU or the web itself. */
 export interface Api {
   getStatic(): Promise<StaticData>
-  getProfile(championId: number, role: Role): Promise<ChampionProfile>
-  /** `opponentId` null: summed over the champion's most played matchups. */
-  getBuilds(championId: number, role: Role, opponentId: number | null): Promise<BuildSet>
+  /** Passing the lane opponent lets the profile ride along with that matchup's request. */
+  getProfile(championId: number, role: Role, opponentId: number | null): Promise<ChampionProfile>
+  /**
+   * With an opponent: that matchup. Without: `quick` is the overall build from one request,
+   * `full` the sum over the champion's most played matchups.
+   */
+  getBuilds(championId: number, role: Role, opponentId: number | null, depth: 'quick' | 'full'): Promise<BuildSet>
   checkUpdate(): Promise<string | null>
   updateData(): Promise<UpdateResult>
   getState(): Promise<LeagueState>

@@ -21,6 +21,8 @@ export interface View {
   onOpponent: (id: number | null) => void
   /** Both teams' composition during champ select. */
   draft: { allies: TeamAnalysis; enemies: TeamAnalysis } | null
+  /** The detailed set over several matchups is still loading; `builds` is the quick overall one. */
+  loadingMore: boolean
   /** At least one "what are you facing" flag is set. */
   situationMarked: boolean
   selectedPage: string
@@ -105,8 +107,18 @@ const itemName = (id: number, data: StaticData): string => data.items[id]?.name 
 function scopeText(view: View): string {
   const { builds, data, opponentId } = view
   if (opponentId !== null) return `gegen ${data.champions[opponentId]?.name} · ${count(builds.sample)} Spiele`
+  if (builds.quick) return `Champion gesamt · ${count(builds.sample)} Spiele`
   const share = builds.coverage ? ` (${percent(builds.coverage, 0)} aller Spiele)` : ''
   return `Summe der ${builds.opponentIds.length} häufigsten Matchups${share} · ${count(builds.sample)} Spiele`
+}
+
+/** Shown above the quick overall data while the detailed set loads. */
+function MoreLoading({ what }: { what: string }) {
+  return (
+    <p className="loading rounded-lg border border-line bg-surface px-3 py-2 text-[12px] text-mute">
+      {what} werden aus den häufigsten Matchups geladen …
+    </p>
+  )
 }
 
 // ---------- Entscheidung ----------
@@ -174,7 +186,10 @@ export function DecisionView(view: View) {
           </div>
         </section>
 
-        <Panel title="Item-Pfad" aside="Anteil der Spiele je Kauf-Slot · Klick für Details">
+        <Panel
+          title="Item-Pfad"
+          aside={builds.quick ? 'Anteil der Spiele mit diesem Item · Klick für Details' : 'Anteil der Spiele je Kauf-Slot · Klick für Details'}
+        >
           <div className="flex flex-wrap items-start gap-x-3 gap-y-4">
             {rec.starter && step('Start', rec.starter.ids, rec.starter)}
             {rec.path.map((choice, index) => (
@@ -279,8 +294,10 @@ export function DecisionView(view: View) {
         ) : (
           <Panel title="Kein Lane-Gegner gewählt">
             <p className="text-mute">
-              Die Empfehlung summiert die häufigsten Matchups. Wähle unter „Matchups“ oder über die Suche einen Gegner,
-              um Runen und Items genau für diese Lane zu sehen.
+              {builds.quick
+                ? 'Das ist der meistgespielte Build des Champions über alle Gegner.'
+                : 'Die Empfehlung summiert die häufigsten Matchups.'}{' '}
+              Wähle unter „Matchups“ oder über die Suche einen Gegner, um Runen und Items genau für diese Lane zu sehen.
             </p>
           </Panel>
         )}
@@ -329,6 +346,7 @@ export function BuildsView(view: View) {
 
   return (
     <div className="space-y-4">
+      {view.loadingMore && <MoreLoading what="Weitere Builds und der Vergleich je Gegner" />}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-3">
         {builds.pages.map((entry) => {
           const active = entry.key === page.key
@@ -455,7 +473,8 @@ export function BuildsView(view: View) {
           </Panel>
         ) : (
           <Panel title="Build gegen Gegner" aside={`Winrate je Build · „–“ = unter ${MIN_GAMES} Spielen`}>
-            <table className="w-full">
+            {builds.perOpponent.length === 0 && <p className="text-mute">Kommt mit den Matchup-Daten.</p>}
+            <table className={builds.perOpponent.length === 0 ? 'hidden' : 'w-full'}>
               <thead>
                 <tr className="text-[11px] text-mute">
                   <th />
@@ -557,6 +576,7 @@ export function ItemsView(view: View) {
 
   return (
     <div className="space-y-4">
+      {view.loadingMore && <MoreLoading what="Die Optionen je Kauf-Slot" />}
       <p className="text-[12px] text-mute">
         {scopeText(view)} · Gold = im empfohlenen Pfad · Spätere Slots zeigen von Natur aus höhere Winrates, weil nur
         längere, oft gewonnene Spiele sie erreichen – vergleiche deshalb innerhalb eines Slots. Die durchschnittliche

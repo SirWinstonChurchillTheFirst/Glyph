@@ -6,6 +6,7 @@ import { app } from 'electron'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { aggregate } from '../../shared/analysis'
+import { parseCompact } from './compact'
 import type {
   BuildSet,
   ChampionProfile,
@@ -18,6 +19,8 @@ import type {
 
 const ENDPOINT = 'https://mcp-api.op.gg/mcp'
 const CACHE_TTL = 24 * 60 * 60 * 1000
+/** Older entries are still shown at once while a fresh copy loads in the background. */
+const STALE_TTL = 14 * 24 * 60 * 60 * 1000
 const MAX_PARALLEL = 6
 /** The summed view covers this many of the champion's most played matchups. */
 const AGGREGATE_MATCHUPS = 6
@@ -55,6 +58,11 @@ async function rpc(method: string, params: unknown): Promise<{ result?: any; err
   return JSON.parse(payload)
 }
 
+/** Opens the session ahead of the first lookup. */
+export function warmUp(): void {
+  connect().catch(() => {})
+}
+
 function connect(): Promise<void> {
   ready ??= rpc('initialize', {
     protocolVersion: '2025-03-26',
@@ -77,7 +85,8 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<an
     if (response.error) throw new Error(response.error.message)
     const text = (response.result?.content ?? []).map((part: { text?: string }) => part.text ?? '').join('')
     if (response.result?.isError) throw new Error(text || 'OP.GG hat die Anfrage abgelehnt.')
-    return JSON.parse(text)
+    // Tools with selectable fields answer in a compact text format instead of JSON.
+    return text.startsWith('class ') ? parseCompact(text) : JSON.parse(text)
   }
   try {
     return await attempt()
@@ -112,18 +121,30 @@ function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
   const existing = memory.get(key)
   if (existing) return existing as Promise<T>
 
-  const promise = (async () => {
-    try {
-      const stored = JSON.parse(await readFile(cacheFile(key), 'utf8')) as { at: number; value: T }
-      if (Date.now() - stored.at < CACHE_TTL) return stored.value
-    } catch {
-      // Not cached yet.
-    }
+  const refresh = async (): Promise<T> => {
     const value = await load()
     void mkdir(path.dirname(cacheFile(key)), { recursive: true })
       .then(() => writeFile(cacheFile(key), JSON.stringify({ at: Date.now(), value })))
       .catch(() => {})
     return value
+  }
+  const promise = (async () => {
+    try {
+      const stored = JSON.parse(await readFile(cacheFile(key), 'utf8')) as { at: number; value: T }
+      const age = Date.now() - stored.at
+      if (age < CACHE_TTL) return stored.value
+      if (age < STALE_TTL) {
+        // Yesterday's numbers now beat today's numbers in four seconds; the next lookup gets the fresh ones.
+        void refresh().then(
+          (value) => memory.set(key, Promise.resolve(value)),
+          () => {}
+        )
+        return stored.value
+      }
+    } catch {
+      // Not cached yet.
+    }
+    return refresh()
   })()
   memory.set(key, promise)
   // A failed request must not stick; the next call tries again.
@@ -272,25 +293,111 @@ function guide(data: StaticData, championId: number, role: Role, opponentId: num
   )
 }
 
-/** Opponent-independent statistics. Asking for the mirror matchup returns exactly those. */
-export async function getProfile(data: StaticData, championId: number, role: Role): Promise<ChampionProfile> {
-  return (await guide(data, championId, role, championId)).profile
+/**
+ * Opponent-independent statistics. Every matchup answer carries them, so with a lane opponent
+ * they come from that request; without one, asking for the mirror matchup returns exactly those.
+ */
+export async function getProfile(
+  data: StaticData,
+  championId: number,
+  role: Role,
+  opponentId: number | null
+): Promise<ChampionProfile> {
+  return (await guide(data, championId, role, opponentId ?? championId)).profile
+}
+
+const SET_FIELDS = '{ids[],pick_rate,play,win}'
+const ANALYSIS_FIELDS = [
+  'data.runes.{id,pick_rate,play,primary_page_id,primary_rune_ids[],secondary_page_id,secondary_rune_ids[],stat_mod_ids[],win}',
+  `data.starter_items.${SET_FIELDS}`,
+  `data.core_items.${SET_FIELDS}`,
+  `data.boots.${SET_FIELDS}`,
+  `data.fourth_items[].${SET_FIELDS}`,
+  `data.fifth_items[].${SET_FIELDS}`,
+  `data.sixth_items[].${SET_FIELDS}`,
+  `data.last_items[].${SET_FIELDS}`,
+  'data.skills.{order[],pick_rate,play,win}'
+]
+
+/** The champion's overall build in one request: far less detail than a matchup, but quick. */
+function overview(data: StaticData, championId: number, role: Role): Promise<BuildSet> {
+  const me = data.champions[championId]
+  if (!me) return Promise.reject(new Error('Unbekannter Champion.'))
+  return cached(`overview-${championId}-${role}`, () =>
+    limited(async () => {
+      const raw = await callTool('lol_get_champion_analysis', {
+        champion: me.slug,
+        position: role,
+        game_mode: 'ranked',
+        desired_output_fields: ANALYSIS_FIELDS
+      })
+      const source = raw?.data
+      const runes = source?.runes
+      if (!runes?.primary_rune_ids?.length) throw new Error('Für diesen Champion liegen in dieser Rolle keine Build-Daten vor.')
+
+      const page = {
+        ...stat(runes),
+        key: `${runes.id}-${runes.secondary_page_id}`,
+        keystone: Number(runes.id),
+        primaryStyle: Number(runes.primary_page_id),
+        subStyle: Number(runes.secondary_page_id)
+      }
+      const items = sets(source.last_items)
+      const core = sets(source.core_items ? [source.core_items] : [])
+      // The first three purchases are only known as one combination; each item gets its overall usage where known.
+      const coreSlots = (core[0]?.ids ?? []).map((id) => [
+        items.find((entry) => entry.ids[0] === id) ?? { ...core[0], ids: [id] }
+      ])
+
+      return {
+        opponentIds: [],
+        sample: page.pickRate > 0 ? Math.round(page.games / page.pickRate) : page.games,
+        coverage: null,
+        quick: true,
+        pages: [
+          {
+            ...page,
+            variants: [
+              {
+                ...stat(runes),
+                perks: [...ids(runes.primary_rune_ids), ...ids(runes.secondary_rune_ids)],
+                shards: ids(runes.stat_mod_ids)
+              }
+            ]
+          }
+        ],
+        runeUse: { primary: [], secondary: [], shards: [] },
+        starters: sets(source.starter_items ? [source.starter_items] : []),
+        boots: sets(source.boots ? [source.boots] : []),
+        cores: core,
+        slots: [...coreSlots, sets(source.fourth_items), sets(source.fifth_items), sets(source.sixth_items)].filter(
+          (slot) => slot.length > 0
+        ),
+        items,
+        skills: source.skills?.order ? [{ ...stat(source.skills), order: source.skills.order }] : [],
+        lane: null,
+        perOpponent: []
+      }
+    })
+  )
 }
 
 export async function getBuilds(
   data: StaticData,
   championId: number,
   role: Role,
-  opponentId: number | null
+  opponentId: number | null,
+  depth: 'quick' | 'full'
 ): Promise<BuildSet> {
   if (opponentId !== null) {
     const { builds } = await guide(data, championId, role, opponentId)
     if (!builds) throw new Error('Für dieses Matchup liegen keine Build-Daten vor.')
     return builds
   }
+  if (depth === 'quick') return overview(data, championId, role)
 
   return cached(`aggregate-${championId}-${role}`, async () => {
-    const { matchups } = await getProfile(data, championId, role)
+    const { matchups } = await getProfile(data, championId, role, null)
     const top = [...matchups].sort((a, b) => b.games - a.games).slice(0, AGGREGATE_MATCHUPS)
     const guides = await Promise.all(
       top.map((matchup) => guide(data, championId, role, matchup.opponentId).catch(() => null))

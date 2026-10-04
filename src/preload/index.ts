@@ -3,8 +3,9 @@ import type { Api, LeagueState } from '../shared/types'
 
 const api: Api = {
   getStatic: () => ipcRenderer.invoke('data:static'),
-  getProfile: (championId, role) => ipcRenderer.invoke('stats:profile', championId, role),
-  getBuilds: (championId, role, opponentId) => ipcRenderer.invoke('stats:builds', championId, role, opponentId),
+  getProfile: (championId, role, opponentId) => ipcRenderer.invoke('stats:profile', championId, role, opponentId),
+  getBuilds: (championId, role, opponentId, depth) =>
+    ipcRenderer.invoke('stats:builds', championId, role, opponentId, depth),
   checkUpdate: () => ipcRenderer.invoke('data:check-update'),
   updateData: () => ipcRenderer.invoke('data:update'),
   getState: () => ipcRenderer.invoke('league:state'),

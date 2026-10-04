@@ -25,6 +25,18 @@ function loadRecent(): number[] {
   }
 }
 
+const ROLES_KEY = 'glyph.mainRoles'
+
+/** Each champion's most played role as learned from earlier lookups, so the next one starts in it. */
+function loadMainRoles(): Record<number, Role> {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(ROLES_KEY) ?? '{}')
+    return stored && typeof stored === 'object' ? (stored as Record<number, Role>) : {}
+  } catch {
+    return {}
+  }
+}
+
 const NO_FACING: Facing = { ad: false, ap: false, cc: false }
 
 export function App() {
@@ -44,6 +56,7 @@ export function App() {
   const [newPatch, setNewPatch] = useState<string | null>(null)
   const [update, setUpdate] = useState<{ busy: boolean; message?: string }>({ busy: false })
   const [recent, setRecent] = useState(loadRecent)
+  const [mainRoles, setMainRoles] = useState(loadMainRoles)
 
   useEffect(() => {
     window.api.getStatic().then(setData, (error: Error) => setDataError(error.message))
@@ -76,6 +89,7 @@ export function App() {
   const role: Role =
     (roleChoice?.championId === championId ? roleChoice.role : null) ??
     champSelect?.role ??
+    (championId !== null ? mainRoles[championId] : undefined) ??
     champion?.positions[0] ??
     'mid'
 
@@ -135,20 +149,60 @@ export function App() {
   }, [draft, derived])
 
   // ---------- Statistics ----------
-  const profile = useAsync(championId !== null ? `profile-${championId}-${role}` : null, () =>
-    window.api.getProfile(championId!, role)
+  const profile = useAsync(championId !== null ? `profile-${championId}-${role}-${opponentId}` : null, () =>
+    window.api.getProfile(championId!, role, opponentId)
   )
-  const builds = useAsync(championId !== null ? `builds-${championId}-${role}-${opponentId}` : null, () =>
-    window.api.getBuilds(championId!, role, opponentId)
+  // First answer: the matchup, or without an opponent the overall build from a single request.
+  const first = useAsync(championId !== null ? `builds-${championId}-${role}-${opponentId}` : null, () =>
+    window.api.getBuilds(championId!, role, opponentId, 'quick')
   )
 
-  // A champion opened in a role it is not played in: move to its most played one.
+  // Without an opponent the detailed sum over several matchups costs six more requests, so it is
+  // loaded only once something needs it: the build or item tabs, a marked situation, or a failed first answer.
+  const fullKey = championId !== null && opponentId === null ? `full-${championId}-${role}` : null
+  const wantsFull =
+    fullKey !== null && (tab === 'builds' || tab === 'items' || facing.ad || facing.ap || facing.cc || first.error !== null)
+  const [fullRequested, setFullRequested] = useState<string | null>(null)
+  useEffect(() => {
+    if (wantsFull) setFullRequested(fullKey)
+  }, [wantsFull, fullKey])
+  const full = useAsync(fullKey !== null && fullRequested === fullKey ? fullKey : null, () =>
+    window.api.getBuilds(championId!, role, null, 'full')
+  )
+
+  const buildData = full.data ?? first.data
+  const loadingMore = fullKey !== null && fullRequested === fullKey && !full.data && !full.error
+  const builds = {
+    data: buildData,
+    // While the detailed set is still on its way, a failed first answer is not the last word.
+    error: buildData || loadingMore ? null : (full.error ?? first.error),
+    retry: () => {
+      first.retry()
+      full.retry()
+    }
+  }
+
+  // The static data lists a champion's positions without saying which is the main one. The profile
+  // does: remember it, and move there unless the role was chosen (by the draft or by hand) and is one
+  // the champion is actually played in.
+  const roleGiven = roleChoice?.championId === championId || Boolean(champSelect?.role)
   useEffect(() => {
     const positions = profile.data?.positions
-    if (!positions?.length || championId === null || positions.some((position) => position.role === role)) return
+    if (!positions?.length || championId === null) return
     const main = [...positions].sort((a, b) => b.games - a.games)[0].role
-    setRoleChoice({ championId, role: main })
-  }, [profile.data, championId, role])
+    setMainRoles((current) => {
+      if (current[championId] === main) return current
+      const next = { ...current, [championId]: main }
+      try {
+        localStorage.setItem(ROLES_KEY, JSON.stringify(next))
+      } catch {
+        // Not being able to remember is fine.
+      }
+      return next
+    })
+    const played = positions.some((position) => position.role === role)
+    if (role !== main && (!roleGiven || !played)) setRoleChoice({ championId, role: main })
+  }, [profile.data, championId, role, roleGiven])
 
   const recommendation = useMemo(
     () => (data && builds.data ? recommend(builds.data, facing, data, situation) : null),
@@ -236,6 +290,7 @@ export function App() {
             onOpen: setDetail,
             onOpponent: setOpponent,
             situationMarked: facing.ad || facing.ap || facing.cc,
+            loadingMore,
             draft: draft && { allies: draft.allies, enemies: draft.enemies },
             selectedPage: pageChoice ?? recommendation.page.pick.key,
             onPage: setPageChoice
@@ -304,7 +359,9 @@ export function App() {
     opponentId !== null && data
       ? `gegen ${data.champions[opponentId]?.name}`
       : builds.data
-        ? `Summe der ${builds.data.opponentIds.length} häufigsten Matchups`
+        ? builds.data.quick
+          ? 'Champion gesamt'
+          : `Summe der ${builds.data.opponentIds.length} häufigsten Matchups`
         : ''
 
   return (

@@ -62,9 +62,11 @@ connection.
 Because Glyph doesn't make numbers up. Item purchase times, early/mid/late ratings per build and per-phase matchup data
 aren't in the statistics it uses, so it says so instead of guessing.
 
-**The first champion takes about ten seconds.**
-Without a lane opponent Glyph adds up the champion's six most played matchups, which is six requests. With an opponent
-it's one request and a few seconds; everything is cached afterwards.
+**Why does a champion take a few seconds the first time?**
+Each request to the statistics source takes three to five seconds, and Glyph can't change that. It keeps the number
+small instead: without a lane opponent it first shows the champion's overall build (one request), with an opponent that
+matchup (one request). Only the *Builds* and *Items* tabs, or a ticked situation, load the detailed data from the six
+most played matchups. Everything is cached, so a champion you have opened before appears at once.
 
 **It doesn't find my League client.**
 Start League first and wait until you're logged in. Glyph looks for the client's lockfile in the folder the Riot Client

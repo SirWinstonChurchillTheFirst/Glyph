@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
 import path from 'node:path'
 import type { ImportRequest, Role } from '../shared/types'
-import { getBuilds, getProfile } from './data/opgg'
+import { getBuilds, getProfile, warmUp } from './data/opgg'
 import { checkUpdate, getStatic, updateStatic } from './data/store'
 import { LeagueService } from './league/LeagueService'
 import { LeagueWatcher } from './league/watcher'
@@ -67,11 +67,13 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.handle('data:static', () => getStatic())
     ipcMain.handle('data:check-update', () => checkUpdate())
     ipcMain.handle('data:update', () => updateStatic())
-    ipcMain.handle('stats:profile', async (_event, championId: number, role: Role) =>
-      getProfile(await getStatic(), championId, role)
+    ipcMain.handle('stats:profile', async (_event, championId: number, role: Role, opponentId: number | null) =>
+      getProfile(await getStatic(), championId, role, opponentId)
     )
-    ipcMain.handle('stats:builds', async (_event, championId: number, role: Role, opponentId: number | null) =>
-      getBuilds(await getStatic(), championId, role, opponentId)
+    ipcMain.handle(
+      'stats:builds',
+      async (_event, championId: number, role: Role, opponentId: number | null, depth: 'quick' | 'full') =>
+        getBuilds(await getStatic(), championId, role, opponentId, depth)
     )
     ipcMain.handle('league:state', () => watcher.state)
     ipcMain.handle('league:import-runes', (_event, request: ImportRequest) => league.importRunes(request))
@@ -79,6 +81,7 @@ if (!app.requestSingleInstanceLock()) {
 
     createWindow()
     watcher.start()
+    warmUp()
   })
 
   app.on('window-all-closed', () => {
