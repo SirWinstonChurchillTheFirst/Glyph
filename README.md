@@ -91,7 +91,7 @@ No, Windows 10/11 (64-bit) only.
 How a recommendation is made:
 
 - **Runes:** among the pages with at least 30 games, the one whose 95 % range has the highest lower end. “Clear
-  Favorit” (clear favourite) means its whole range lies above the next page's.
+  favourite” means its whole range lies above the next page's.
 - **Items:** the most bought item per slot. If the enemy team is heavy on physical damage, magic damage or crowd control
   (taken from the draft, or ticked by hand), at most one item and the boots are swapped per flag – only for an option
   with the matching property that is bought in at least 10 % of games and doesn't do clearly worse.
