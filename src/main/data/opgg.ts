@@ -33,17 +33,43 @@ let sessionId: string | null = null
 let ready: Promise<void> | null = null
 let requestId = 0
 
+/** Pauses before each attempt of one request. */
+const ATTEMPT_DELAYS = [0, 400, 1200, 2500]
+
+/**
+ * One request to the endpoint. A failure to connect is retried: a connection that sat idle since
+ * the last lookup is often dead by the next one, and name resolution has short outages.
+ */
+async function post(body: string): Promise<Response> {
+  let failure: unknown
+  for (const delay of ATTEMPT_DELAYS) {
+    if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay))
+    try {
+      return await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json, text/event-stream',
+          ...(sessionId ? { 'Mcp-Session-Id': sessionId } : {})
+        },
+        body,
+        signal: AbortSignal.timeout(25000)
+      })
+    } catch (error) {
+      failure = error
+      // A server that takes this long will not be quicker on the next try.
+      if (error instanceof Error && error.name === 'TimeoutError') break
+    }
+  }
+  throw new Error(
+    failure instanceof Error && failure.name === 'TimeoutError'
+      ? 'OP.GG antwortet gerade nicht.'
+      : 'OP.GG ist nicht erreichbar. Bitte die Internetverbindung prüfen.'
+  )
+}
+
 async function rpc(method: string, params: unknown): Promise<{ result?: any; error?: { message: string } }> {
-  const response = await fetch(ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json, text/event-stream',
-      ...(sessionId ? { 'Mcp-Session-Id': sessionId } : {})
-    },
-    body: JSON.stringify({ jsonrpc: '2.0', id: ++requestId, method, params }),
-    signal: AbortSignal.timeout(25000)
-  })
+  const response = await post(JSON.stringify({ jsonrpc: '2.0', id: ++requestId, method, params }))
   sessionId = response.headers.get('mcp-session-id') ?? sessionId
   if (!response.ok) throw new Error(`OP.GG antwortet mit Status ${response.status}.`)
   const text = await response.text()
