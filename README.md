@@ -1,69 +1,116 @@
 # Glyph
 
-Entscheidungshilfe für den Champion Select in League of Legends: Welche Runen, welche Items,
-gegen wen – und warum. Jede Empfehlung nennt die Zahlen, auf denen sie beruht, und jede Winrate
-wird mit ihrem 95-%-Bereich gezeichnet statt mit einem erfundenen Confidence-Wert.
+**What should I play, what should I build, and why? Answers for champion select, each with its numbers.**
 
-## Starten
+Glyph is a small Windows app for League of Legends. It notices your champion select, reads both teams and shows which
+runes and items to take in exactly this game. Every recommendation says what it rests on, and every win rate is drawn
+together with its 95 % range instead of an invented “confidence” score. One click imports the runes into the client.
+The interface is in **German**; champion, item and rune names are English.
+
+> **Unofficial fan project.** Glyph isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games
+> or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties
+> are trademarks or registered trademarks of Riot Games, Inc. Glyph is not affiliated with OP.GG either.
+
+![The decision view during champion select](docs/screenshots/decision.png)
+
+## What Glyph does
+
+- **Decision:** the recommended rune page, item path, boots and skill order for your lane opponent, with a “Warum?”
+  (why) under each pick. *What you change in this match* lists every deviation from the usual build.
+- **Draft:** both teams, the lane opponent picked out automatically, and a side-by-side team comparison (damage type,
+  frontline, crowd control, engage, peel, poke, burst).
+- **Builds:** one card per rune page with win rate, games and pick rate, the full rune tree with the usage of every
+  rune, and how each build does against each opponent.
+- **Items:** the options for every purchase slot with share and win rate, boots, starting items and the most common
+  three-item combinations. Click any item or rune for details.
+- **Matchups:** best, hardest and all matchups; a click switches the whole analysis to that opponent.
+- **Search** (Ctrl K): a champion, “Bard vs Brand”, an item, a rune or a build.
+- **Rune import** into the League client, without touching your other pages.
+
+| Builds | Items |
+|---|---|
+| ![Builds](docs/screenshots/builds.png) | ![Items](docs/screenshots/items.png) |
+
+![Matchups](docs/screenshots/matchups.png)
+
+## Install
+
+Download `Glyph-Setup.exe` from the [releases](../../releases) and run it – no admin rights needed. Start League, enter
+a champion select, done. Without League running you can open any champion through the search.
+
+The installer isn't signed, so Windows may show “Windows protected your PC” on the first start: click *More info* →
+*Run anyway*.
+
+## FAQ
+
+**Windows or my antivirus blocks the installer. Is it a virus?**
+No. The installer isn't signed with a paid code-signing certificate and isn't downloaded often, so Windows SmartScreen
+doesn't know it. Everything Glyph does is in this repository, and the installer is built from it. To check that your
+download wasn't tampered with, compare its checksum with the one in the release notes:
+`Get-FileHash .\Glyph-Setup.exe` in PowerShell.
+
+**Can I get banned for using it?**
+Glyph only reads the champion select and writes a rune page through the League client's own local interface, the same
+way other rune importers do. It does nothing during a game, picks or bans nothing and never touches the game itself.
+There is no guarantee from Riot for any third-party tool, though – you use it at your own risk.
+
+**Where do the numbers come from?**
+See [Data](#data). Statistics are fetched when you open a champion and kept for 24 hours, so Glyph needs an internet
+connection.
+
+**Why does it say “liefert die Quelle nicht” (not provided by the source) in some places?**
+Because Glyph doesn't make numbers up. Item purchase times, early/mid/late ratings per build and per-phase matchup data
+aren't in the statistics it uses, so it says so instead of guessing.
+
+**The first champion takes about ten seconds.**
+Without a lane opponent Glyph adds up the champion's six most played matchups, which is six requests. With an opponent
+it's one request and a few seconds; everything is cached afterwards.
+
+**It doesn't find my League client.**
+Start League first and wait until you're logged in. Glyph looks for the client's lockfile in the folder the Riot Client
+installed it to, and falls back to the running process.
+
+**How do I update?**
+Download the new `Glyph-Setup.exe` and run it – it installs over the old version.
+
+**Does it run on Mac or Linux?**
+No, Windows 10/11 (64-bit) only.
+
+## Data
+
+| Source | Used for | Fetched |
+|---|---|---|
+| [OP.GG](https://github.com/opgginc/opgg-mcp), public MCP endpoint | win/pick/ban rate, tier, rune pages, items per slot, matchups, game length, lane verdict | on demand, cached for 24 h |
+| [Data Dragon](https://developer.riotgames.com/docs/lol#data-dragon) (Riot) | champions, items with their properties, runes, pictures | `data/static.json`, per patch |
+| [Meraki Analytics](https://github.com/meraki-analytics/lolstaticdata) | Riot's champion classes, 1–3 ratings, damage type, positions | `data/static.json`, per patch |
+
+How a recommendation is made:
+
+- **Runes:** among the pages with at least 30 games, the one whose 95 % range has the highest lower end. “Klarer
+  Favorit” (clear favourite) means its whole range lies above the next page's.
+- **Items:** the most bought item per slot. If the enemy team is heavy on physical damage, magic damage or crowd control
+  (taken from the draft, or ticked by hand), at most one item and the boots are swapped per flag – only for an option
+  with the matching property that is bought in at least 10 % of games and doesn't do clearly worse.
+- **Team comparison:** the average of Riot's ratings and the number of champions of certain classes.
+
+## Build it yourself
+
+Requirements: Windows, Node.js 22 or newer.
 
 ```
 npm install
-npm run dev        # Entwicklung mit Hot Reload
-npm run build      # Produktions-Build nach out/
-npm start          # gebaute App starten
-npm run dist       # Windows-Installer nach dist/
+npm run dev          # development with hot reload
+npm run dist         # dist/Glyph-Setup.exe, prints its SHA-256
+npm run update-data  # refresh data/static.json for a new patch
+npm run icon         # redraw build/icon.png
 ```
 
-Ohne laufendes League lässt sich alles über die Suche (Strg K) öffnen: Champion, „Bard vs
-Brand“, Item, Rune oder Build.
+The code is split into four layers: data (`src/main/data`, `src/main/league`), analysis (`src/shared/analysis.ts`),
+recommendation (`src/shared/recommend.ts`) and the interface (`src/renderer`), which only displays.
 
-## Aufbau
+## License
 
-```
-DATA            src/main/data/opgg.ts      Statistiken holen, normalisieren, cachen
-                src/main/data/updater.ts   statische Spieldaten erzeugen
-                src/main/league/           League Client (LCU)
-ANALYSIS        src/shared/analysis.ts     Wilson-Intervall, Summenbildung, Team-Analyse
-RECOMMENDATION  src/shared/recommend.ts    Auswahl mit Begründung
-UI              src/renderer/src/          zeigt nur an; rechnet nicht selbst
-```
+Glyph is free software under the **GNU General Public License v3.0** – see [LICENSE](LICENSE).
 
-Die UI spricht ausschließlich über `window.api` (`src/preload`, Vertrag in `src/shared/types.ts`).
-
-## Datenquellen
-
-| Quelle | Wofür | Abruf |
-| --- | --- | --- |
-| OP.GG, öffentlicher MCP-Endpunkt (`mcp-api.op.gg`) | Winrate/Pick/Ban/Tier, Runenseiten, Items je Slot, Matchups, Spieldauer, Lane-Einschätzung | bei Bedarf, 24 h auf der Platte gecacht |
-| Data Dragon (Riot) | Champions, Items mit Eigenschaften, Runen, Bilder | `data/static.json`, pro Patch |
-| Meraki Analytics (offenes Projekt) | Riots Champion-Klassen, Wertungen 1–3, Schadensart, Positionen | `data/static.json`, pro Patch |
-
-`npm run update-data` erzeugt `data/static.json` neu; die App bietet das bei einem neuen Patch
-auch selbst in der Fußzeile an.
-
-OP.GG liefert die tiefen Daten (mehrere Runenseiten, Item-Statistiken) nur je Matchup. Ohne
-gewählten Gegner summiert Glyph deshalb die sechs meistgespielten Matchups und sagt dazu, welchen
-Anteil aller Spiele das abdeckt.
-
-## Wie Empfehlungen entstehen
-
-- **Runen:** unter den Seiten mit mindestens 30 Spielen die mit dem höchsten unteren Rand des
-  95-%-Bereichs. „Klarer Favorit“ heißt: ihr Bereich liegt vollständig über dem der nächsten.
-- **Items:** je Slot das meistgekaufte. Ist „viel AD / AP / CC“ markiert (im Champion Select aus
-  dem Draft abgeleitet), wird pro Markierung höchstens ein Item und die Stiefel getauscht – nur
-  gegen eine Option mit passender Eigenschaft, die in mindestens 10 % der Spiele gekauft wird und
-  nicht klar schlechter abschneidet.
-- **Team-Analyse:** Durchschnitt von Riots Wertungen (Frontline, Crowd Control, Mobilität) und
-  Anzahl der Champions bestimmter Klassen (Engage, Peel, Poke, Burst).
-
-## Was die Quelle nicht hergibt
-
-Kaufzeiten von Items, Früh-/Mittel-/Spätspiel je Build, Phasen-Daten je Matchup, Matchups je Rune
-und benannte Build-Archetypen mit Item-Listen. Die App sagt das an der jeweiligen Stelle, statt
-Werte zu erfinden. Neue Felder kommen in `parseGuide` (`opgg.ts`) dazu und stehen dann allen
-Schichten zur Verfügung.
-
-## Runen-Import
-
-Die App legt genau eine eigene Seite an („Glyph · Champion Rolle“) und ersetzt diese bei jedem
-weiteren Import. Ist kein Slot frei, fragt sie, bevor sie eine vorhandene Seite überschreibt.
+Champion, item and rune pictures are loaded from Riot's Data Dragon and belong to Riot Games; they are not part of this
+repository, except in the screenshots above.

@@ -1,7 +1,7 @@
 {
   "name": "glyph",
   "version": "0.2.0",
-  "description": "Entscheidungshilfe für den Champion Select: Runen, Items, Matchups – mit Begründung.",
+  "description": "Decision help for League of Legends champion select: runes, items and matchups, each with its reasons.",
   "main": "./out/main/index.js",
   "private": true,
   "scripts": {
@@ -10,7 +10,8 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit",
     "update-data": "node scripts/update-data.ts",
-    "dist": "electron-vite build && electron-builder --win"
+    "dist": "electron-vite build && electron-builder --win && node scripts/checksum.cjs",
+    "icon": "electron scripts/make-icon.cjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -28,17 +29,36 @@
     "vite": "^7.0.0"
   },
   "build": {
-    "appId": "dev.glyph.app",
+    "appId": "io.github.sirwinstonchurchillthefirst.glyph",
     "productName": "Glyph",
+    "copyright": "Copyright © 2026 SirWinstonChurchillTheFirst – GPL-3.0",
     "files": [
       "out/**",
       "data/**"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.png"
     },
     "nsis": {
-      "artifactName": "Glyph-Setup-${version}.exe"
+      "artifactName": "Glyph-Setup.exe",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "license": "LICENSE",
+      "shortcutName": "Glyph",
+      "uninstallDisplayName": "Glyph",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "differentialPackage": false
     }
+  },
+  "author": "SirWinstonChurchillTheFirst",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SirWinstonChurchillTheFirst/Glyph.git"
   }
 }
