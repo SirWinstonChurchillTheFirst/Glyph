@@ -114,3 +114,8 @@ Glyph is free software under the **GNU General Public License v3.0** – see [LI
 
 Champion, item and rune pictures are loaded from Riot's Data Dragon and belong to Riot Games; they are not part of this
 repository, except in the screenshots above.
+
+## Support
+
+Glyph is and stays free, with no paid features. If you like it, you can support its development with a coffee –
+voluntary, nothing in return: **[ko-fi.com/krogger](https://ko-fi.com/krogger)** ☕
