@@ -13,9 +13,11 @@ interface Props {
   /** Plain-text version of the page for the clipboard fallback. */
   text: string
   connected: boolean
+  /** Why importing is not possible right now; replaces the generic "not connected". */
+  note?: string
 }
 
-export function ImportButton({ request, text, connected }: Props) {
+export function ImportButton({ request, text, connected, note }: Props) {
   const [phase, setPhase] = useState<Phase>({ step: 'idle' })
 
   async function run(replacePageId?: number): Promise<void> {
@@ -78,7 +80,7 @@ export function ImportButton({ request, text, connected }: Props) {
         {phase.step === 'error' && phase.message}
         {phase.step === 'done' && `Seite „${phase.pageName}“ ist im Client aktiv.`}
         {phase.step === 'copied' && 'Runen als Text kopiert.'}
-        {phase.step === 'idle' && !connected && 'League ist nicht verbunden.'}
+        {phase.step === 'idle' && !connected && (note ?? 'League ist nicht verbunden.')}
       </span>
     </div>
   )

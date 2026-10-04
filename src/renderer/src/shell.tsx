@@ -7,7 +7,8 @@ const STATUS: Record<LeagueStatus, { label: string; dot: string }> = {
   starting: { label: 'League startet', dot: 'bg-gold loading' },
   unreachable: { label: 'Client nicht erreichbar', dot: 'bg-down' },
   idle: { label: 'League verbunden', dot: 'bg-ok' },
-  'champ-select': { label: 'Champion Select', dot: 'bg-ok' }
+  'champ-select': { label: 'Champion Select', dot: 'bg-ok' },
+  'in-game': { label: 'Im Spiel', dot: 'bg-ok' }
 }
 
 export function ConnectionStatus({ status }: { status: LeagueStatus }) {

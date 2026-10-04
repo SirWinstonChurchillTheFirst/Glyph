@@ -46,6 +46,10 @@ export function Home({ status, data, recent, launch, onLaunch, onSearch, onChamp
     title = 'Champion Select läuft'
     text = 'Wähle einen Champion – Runen, Items und Matchup erscheinen sofort.'
     actions = null
+  } else if (status === 'in-game') {
+    title = 'Spiel läuft'
+    text = 'Glyph konnte deinen Champion für dieses Spiel nicht erkennen. Du kannst ihn über die Suche öffnen.'
+    actions = <SearchLink onSearch={onSearch} />
   } else if (status === 'starting') {
     title = 'League startet'
     text = 'Glyph verbindet sich, sobald der Client bereit ist.'

@@ -36,9 +36,20 @@ interface ChampSelectSession {
   theirTeam?: SessionPlayer[]
 }
 
+interface GamePlayer {
+  championId?: number
+  puuid?: string
+  selectedPosition?: string
+}
+
 interface GameflowSession {
   map?: { id?: number; gameMode?: string }
-  gameData?: { queue?: { id?: number } }
+  gameData?: {
+    queue?: { id?: number }
+    teamOne?: GamePlayer[]
+    teamTwo?: GamePlayer[]
+    playerChampionSelections?: GamePlayer[]
+  }
 }
 
 export interface CurrentGame {
@@ -110,6 +121,49 @@ export class LeagueService {
       myTeam,
       // Enemy cells share ids with nobody on this side; never mark one as the local player.
       theirTeam: (session.theirTeam ?? []).map((player) => ({ ...slot(player), isMe: false }))
+    }
+  }
+
+  /**
+   * Both teams of the game that is starting or running, or null when the client has no game.
+   * Unlike champ select this also knows the enemies' positions.
+   */
+  async getGameSelection(): Promise<Omit<ChampSelectState, 'gameMode'> | null> {
+    const [session, summoner] = await Promise.all([
+      this.request<GameflowSession>('GET', '/lol-gameflow/v1/session'),
+      this.request<{ puuid?: string }>('GET', '/lol-summoner/v1/current-summoner')
+    ])
+    const game = session.gameData
+    const teams = [game?.teamOne ?? [], game?.teamTwo ?? []]
+    if (teams[0].length + teams[1].length === 0) return null
+
+    const mine = summoner.puuid
+    const slot = (player: GamePlayer): DraftSlot => ({
+      championId: player.championId || null,
+      role: POSITIONS[player.selectedPosition?.toLowerCase() ?? ''] ?? null,
+      isMe: mine !== undefined && player.puuid === mine
+    })
+    const sides = teams.map((team) => team.map(slot))
+
+    // The client can leave a player out of the team lists while still naming their champion.
+    // Such a player belongs to the shorter team and plays the one position nobody else has.
+    const listed = new Set(teams.flat().map((player) => player.puuid))
+    for (const player of game?.playerChampionSelections ?? []) {
+      if (!player.championId || listed.has(player.puuid)) continue
+      const side = sides[0].length <= sides[1].length ? sides[0] : sides[1]
+      const taken = new Set(side.map((other) => other.role))
+      const free = Object.values(POSITIONS).filter((role) => !taken.has(role))
+      side.push({ ...slot(player), role: free.length === 1 ? free[0] : null })
+    }
+
+    const myIndex = sides.findIndex((side) => side.some((player) => player.isMe))
+    if (myIndex < 0) return null
+    const me = sides[myIndex].find((player) => player.isMe)
+    return {
+      championId: me?.championId ?? null,
+      role: me?.role ?? null,
+      myTeam: sides[myIndex],
+      theirTeam: sides[1 - myIndex]
     }
   }
 

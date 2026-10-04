@@ -80,10 +80,16 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const { status, champSelect } = league
+  const { status } = league
+  const online = status === 'idle' || status === 'champ-select' || status === 'in-game'
+  // Rune pages can only be changed before the game starts.
   const connected = status === 'idle' || status === 'champ-select'
-  // A live champ select always wins over a manually chosen champion.
-  const championId = champSelect ? champSelect.championId : manualId
+  // A live champ select always wins over a manually chosen champion. During a game the own
+  // champion is the default, but looking something else up is allowed.
+  const liveId = league.champSelect?.championId ?? null
+  const championId = status === 'champ-select' ? liveId : (manualId ?? liveId)
+  // The draft only says something about the champion it belongs to.
+  const champSelect = league.champSelect && championId === liveId ? league.champSelect : undefined
   const champion = data && championId !== null ? data.champions[championId] : undefined
 
   const role: Role =
@@ -118,7 +124,10 @@ export function App() {
     return {
       allies: analyzeTeam(ids(champSelect.myTeam), data),
       enemies: analyzeTeam(enemyIds, data),
-      lane: laneOpponent(enemyIds, role, data)
+      // A running game knows the enemies' positions; champ select has to estimate them.
+      lane:
+        champSelect.theirTeam.find((slot) => slot.role === role && slot.championId !== null)?.championId ??
+        laneOpponent(enemyIds, role, data)
     }
   }, [data, champSelect, role])
 
@@ -218,12 +227,12 @@ export function App() {
   }, [])
   const openMatchup = useCallback(
     (id: number, opponent: number) => {
-      if (!champSelect) setManualId(id)
+      if (status !== 'champ-select') setManualId(id)
       setOpponentChoice({ championId: id, id: opponent })
       setTab('decision')
       setPageChoice(null)
     },
-    [champSelect]
+    [status]
   )
   const setOpponent = useCallback(
     (id: number | null) => {
@@ -287,6 +296,7 @@ export function App() {
             recommendation,
             opponentId,
             connected,
+            importNote: status === 'in-game' ? 'Im Spiel lassen sich Runen nicht mehr ändern.' : undefined,
             onOpen: setDetail,
             onOpponent: setOpponent,
             situationMarked: facing.ad || facing.ap || facing.cc,
@@ -311,7 +321,7 @@ export function App() {
               ? `${champSelect.gameMode}: Daten aus Ranked Solo`
               : undefined
           }
-          onClose={champSelect ? undefined : () => setManualId(null)}
+          onClose={manualId !== null && status !== 'champ-select' ? () => setManualId(null) : undefined}
           tab={tab}
           onTab={setTab}
         />
@@ -368,7 +378,7 @@ export function App() {
     <div className="relative flex h-full flex-col">
       <Header
         status={status}
-        summonerName={connected ? league.summonerName : undefined}
+        summonerName={online ? league.summonerName : undefined}
         onSearch={() => setSearching(true)}
         info={
           data && {

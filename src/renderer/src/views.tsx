@@ -17,6 +17,8 @@ export interface View {
   recommendation: Recommendation
   opponentId: number | null
   connected: boolean
+  /** Why runes cannot be imported right now, when it is not simply a missing connection. */
+  importNote?: string
   onOpen: (detail: Detail) => void
   onOpponent: (id: number | null) => void
   /** Both teams' composition during champ select. */
@@ -179,6 +181,7 @@ export function DecisionView(view: View) {
               }}
               text={runesAsText(title, page.pick, page.variant, data)}
               connected={view.connected}
+              note={view.importNote}
             />
           </div>
           <div className="mt-4 border-t border-line pt-3">
@@ -420,6 +423,7 @@ export function BuildsView(view: View) {
                   }}
                   text={runesAsText(title, page, variant, data)}
                   connected={view.connected}
+                  note={view.importNote}
                 />
               </div>
             </div>

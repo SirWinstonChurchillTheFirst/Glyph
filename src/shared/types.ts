@@ -148,7 +148,7 @@ export interface ChampionProfile {
 
 // ---------- League client state ----------
 
-export type LeagueStatus = 'not-running' | 'starting' | 'unreachable' | 'idle' | 'champ-select'
+export type LeagueStatus = 'not-running' | 'starting' | 'unreachable' | 'idle' | 'champ-select' | 'in-game'
 
 export interface DraftSlot {
   /** Locked or hovered champion; null while unknown. */
@@ -168,6 +168,7 @@ export interface ChampSelectState {
 export interface LeagueState {
   status: LeagueStatus
   summonerName?: string
+  /** The draft during champ select; during a game the final teams, so the build stays on screen. */
   champSelect?: ChampSelectState
 }
 
