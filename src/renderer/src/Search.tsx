@@ -1,0 +1,186 @@
+import { useEffect, useMemo, useState } from 'react'
+import type { BuildSet, StaticData } from '../../shared/types'
+import { pageName } from './lib'
+import { ChampionIcon, ItemIcon, RuneIcon, type Detail } from './ui'
+
+interface Result {
+  key: string
+  label: string
+  kind: string
+  icon: React.ReactNode
+  run: () => void
+}
+
+interface Props {
+  data: StaticData
+  championId: number | null
+  builds: BuildSet | null
+  onChampion: (id: number) => void
+  onMatchup: (championId: number, opponentId: number) => void
+  onDetail: (detail: Detail) => void
+  onPage: (key: string) => void
+  onClose: () => void
+}
+
+const normal = (text: string): string => text.toLowerCase().replace(/[^a-z0-9]/g, '')
+
+/** One field for everything: champions, "Bard vs Brand", items, runes and the builds on screen. */
+export function Search({ data, championId, builds, onChampion, onMatchup, onDetail, onPage, onClose }: Props) {
+  const [query, setQuery] = useState('')
+  const [index, setIndex] = useState(0)
+
+  const champions = useMemo(
+    () => Object.entries(data.champions).map(([id, champion]) => ({ id: Number(id), name: champion.name, key: normal(champion.name) })),
+    [data]
+  )
+
+  const results = useMemo((): Result[] => {
+    const find = (text: string, limit: number) => {
+      const needle = normal(text)
+      if (!needle) return []
+      return champions
+        .filter((champion) => champion.key.includes(needle))
+        .sort((a, b) => Number(b.key.startsWith(needle)) - Number(a.key.startsWith(needle)) || a.name.localeCompare(b.name))
+        .slice(0, limit)
+    }
+    const out: Result[] = []
+
+    const versus = query.split(/\s+(?:vs\.?|gegen)\s+/i)
+    if (versus.length === 2) {
+      const [me] = find(versus[0], 1)
+      if (me) {
+        for (const opponent of find(versus[1], 5)) {
+          out.push({
+            key: `m-${me.id}-${opponent.id}`,
+            label: `${me.name} gegen ${opponent.name}`,
+            kind: 'Matchup',
+            icon: <ChampionIcon id={opponent.id} data={data} size={24} />,
+            run: () => onMatchup(me.id, opponent.id)
+          })
+        }
+      }
+      return out
+    }
+
+    const needle = normal(query)
+    if (!needle) return out
+
+    for (const champion of find(query, 6)) {
+      out.push({
+        key: `c-${champion.id}`,
+        label: champion.name,
+        kind: 'Champion',
+        icon: <ChampionIcon id={champion.id} data={data} size={24} />,
+        run: () => onChampion(champion.id)
+      })
+      if (championId !== null && champion.id !== championId) {
+        out.push({
+          key: `v-${champion.id}`,
+          label: `${data.champions[championId]?.name} gegen ${champion.name}`,
+          kind: 'Matchup',
+          icon: <ChampionIcon id={champion.id} data={data} size={24} />,
+          run: () => onMatchup(championId, champion.id)
+        })
+      }
+    }
+    for (const page of builds?.pages ?? []) {
+      if (normal(pageName(page, data)).includes(needle)) {
+        out.push({
+          key: `p-${page.key}`,
+          label: pageName(page, data),
+          kind: 'Build',
+          icon: <RuneIcon id={page.keystone} data={data} size={24} />,
+          run: () => onPage(page.key)
+        })
+      }
+    }
+    // Items of the current builds first; then anything purchasable.
+    const used = new Set((builds?.items ?? []).map((entry) => entry.ids[0]))
+    const items = Object.entries(data.items)
+      .filter(([, item]) => item.gold > 0 && normal(item.name).includes(needle))
+      .map(([id]) => Number(id))
+      .sort((a, b) => Number(used.has(b)) - Number(used.has(a)))
+    const seen = new Set<string>()
+    for (const id of items) {
+      // Data Dragon lists some items once per game mode.
+      if (seen.has(data.items[id].name)) continue
+      seen.add(data.items[id].name)
+      if (seen.size > 5) break
+      out.push({
+        key: `i-${id}`,
+        label: data.items[id].name,
+        kind: 'Item',
+        icon: <ItemIcon id={id} data={data} size={24} />,
+        run: () => onDetail({ kind: 'item', id })
+      })
+    }
+    Object.entries(data.runes)
+      .filter(([, rune]) => normal(rune.name).includes(needle))
+      .slice(0, 4)
+      .forEach(([id, rune]) =>
+        out.push({
+          key: `r-${id}`,
+          label: rune.name,
+          kind: 'Rune',
+          icon: <RuneIcon id={Number(id)} data={data} size={24} />,
+          run: () => onDetail({ kind: 'rune', id: Number(id) })
+        })
+      )
+    return out
+  }, [query, champions, data, championId, builds, onChampion, onMatchup, onDetail, onPage])
+
+  useEffect(() => setIndex(0), [query])
+
+  const choose = (result: Result | undefined): void => {
+    if (!result) return
+    result.run()
+    onClose()
+  }
+
+  return (
+    <div className="absolute inset-0 z-20 flex justify-center bg-ink/70 pt-20" onMouseDown={onClose}>
+      <div
+        className="h-fit w-[520px] overflow-hidden rounded-lg border border-line bg-surface shadow-2xl shadow-black/60"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <input
+          autoFocus
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') onClose()
+            else if (event.key === 'Enter') choose(results[index])
+            else if (event.key === 'ArrowDown') {
+              event.preventDefault()
+              setIndex((value) => Math.min(results.length - 1, value + 1))
+            } else if (event.key === 'ArrowUp') {
+              event.preventDefault()
+              setIndex((value) => Math.max(0, value - 1))
+            }
+          }}
+          placeholder="Champion, „Bard vs Brand“, Item, Rune oder Build"
+          className="h-12 w-full bg-transparent px-4 text-[15px] outline-none placeholder:text-mute"
+        />
+        {results.length > 0 && (
+          <div className="max-h-[420px] overflow-y-auto border-t border-line p-1.5">
+            {results.map((result, position) => (
+              <button
+                key={result.key}
+                onClick={() => choose(result)}
+                onMouseEnter={() => setIndex(position)}
+                className={`flex w-full items-center gap-3 rounded px-2.5 py-1.5 text-left ${position === index ? 'bg-raised' : ''}`}
+              >
+                {result.icon}
+                <span className="min-w-0 flex-1 truncate">{result.label}</span>
+                <span className="text-[11px] text-mute">{result.kind}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {query.trim() !== '' && results.length === 0 && (
+          <p className="border-t border-line px-4 py-3 text-mute">Nichts gefunden. Champion-, Item- und Runennamen sind englisch.</p>
+        )}
+      </div>
+    </div>
+  )
+}

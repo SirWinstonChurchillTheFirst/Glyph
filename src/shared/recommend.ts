@@ -1,0 +1,191 @@
+// RECOMMENDATION layer: turns statistics plus the situation into picks with reasons.
+// Every reason quotes the numbers it rests on; nothing here is invented or weighted by taste.
+
+import { interval, winRate } from './analysis'
+import type { BuildSet, ItemSetStat, RunePageStat, RuneVariant, SkillStat, StaticData } from './types'
+
+/** What the enemy team brings. Set by the user or derived from the draft. */
+export interface Facing {
+  ad: boolean
+  ap: boolean
+  cc: boolean
+}
+
+export interface Choice<T> {
+  pick: T
+  reasons: string[]
+  /** The pick differs from the most common one because of `Facing`. */
+  adapted: boolean
+  /** The most common pick already answers the situation. */
+  fits?: boolean
+}
+
+export interface Recommendation {
+  page: Choice<RunePageStat> & {
+    /** How clearly the data favours this page over the next best. */
+    strength: 'clear' | 'recommended' | 'thin'
+    variant: RuneVariant
+  }
+  starter: ItemSetStat | null
+  boots: Choice<ItemSetStat> | null
+  path: Choice<ItemSetStat>[]
+  skill: SkillStat | null
+  /** Deviations from the default build caused by the situation. */
+  changes: string[]
+  /** Usual picks that already answer the situation, so nothing has to change. */
+  covered: string[]
+}
+
+/** Pages with fewer games are never recommended over a larger sample. */
+const MIN_PAGE_GAMES = 30
+/** Below this many games a recommendation is labelled as thin. */
+const SOLID_SAMPLE = 300
+/** An item must be bought at least this often in its slot to replace the most common one. */
+const MIN_ADAPT_SHARE = 0.1
+const PATH_LENGTH = 4
+
+const FACING_TAGS: [flag: keyof Facing, tag: string, gives: string][] = [
+  ['ad', 'Armor', 'Rüstung'],
+  ['ap', 'SpellBlock', 'Magieresistenz'],
+  ['cc', 'Tenacity', 'Zähigkeit']
+]
+
+export const percent = (value: number): string => `${(value * 100).toFixed(1).replace('.', ',')} %`
+const count = (value: number): string => value.toLocaleString('de-DE')
+
+function pickPage(set: BuildSet, data: StaticData): Recommendation['page'] | null {
+  const mostPlayed = set.pages[0]
+  if (!mostPlayed) return null
+
+  const name = (page: RunePageStat): string =>
+    `${data.runes[page.keystone]?.name ?? page.keystone} + ${data.styles[page.subStyle]?.name ?? page.subStyle}`
+  const low = (page: RunePageStat): number => interval(page.wins, page.games).low
+
+  const viable = set.pages.filter((page) => page.games >= MIN_PAGE_GAMES).sort((a, b) => low(b) - low(a))
+  const best = viable[0] ?? mostPlayed
+  const next = viable.find((page) => page !== best)
+
+  const reasons: string[] = []
+  if (best === mostPlayed) {
+    reasons.push(
+      `Meistgespielt: ${percent(best.pickRate)} der Spiele, ${percent(winRate(best))} Winrate bei ${count(best.games)} Spielen.`
+    )
+  } else {
+    reasons.push(
+      `${percent(winRate(best))} Winrate bei ${count(best.games)} Spielen. Selbst am unteren Rand des 95-%-Bereichs (${percent(low(best))}) liegt sie vor der meistgespielten Seite ${name(mostPlayed)} (${percent(low(mostPlayed))}).`,
+      `Wird seltener gespielt: ${percent(best.pickRate)} gegenüber ${percent(mostPlayed.pickRate)}.`
+    )
+  }
+  if (next) {
+    reasons.push(`Nächste Alternative: ${name(next)} mit ${percent(winRate(next))} bei ${count(next.games)} Spielen.`)
+  }
+
+  const clear = next !== undefined && low(best) > interval(next.wins, next.games).high
+  const strength = clear ? 'clear' : best.games >= SOLID_SAMPLE ? 'recommended' : 'thin'
+  if (strength === 'thin') reasons.push(`Nur ${count(best.games)} Spiele – die Aussage ist entsprechend unsicher.`)
+
+  return { pick: best, variant: best.variants[0], reasons, strength, adapted: false }
+}
+
+/** Why an item fits the situation, or null when it has nothing to do with it. */
+function situational(
+  option: ItemSetStat,
+  wanted: (typeof FACING_TAGS)[number][],
+  data: StaticData,
+  situation: Situation
+): { flag: keyof Facing; reason: string } | null {
+  const tags = data.items[option.ids[0]]?.tags ?? []
+  const match = wanted.find(([, tag]) => tags.includes(tag))
+  if (!match) return null
+  const [flag, , gives] = match
+  return { flag, reason: `Gibt ${gives}. ${situation[flag]}` }
+}
+
+/** One sentence per flag saying where it comes from, e.g. "Gegner mit physischem Schaden: Zed, Jinx." */
+export type Situation = Record<keyof Facing, string>
+
+function pickItem(
+  options: ItemSetStat[],
+  label: string,
+  open: Set<keyof Facing>,
+  data: StaticData,
+  situation: Situation
+): Choice<ItemSetStat> | null {
+  const usual = options[0]
+  if (!usual) return null
+  const itemName = (option: ItemSetStat): string => data.items[option.ids[0]]?.name ?? `Item ${option.ids[0]}`
+  const usage = (option: ItemSetStat): string =>
+    `${percent(option.pickRate)} der Spiele, ${percent(winRate(option))} Winrate bei ${count(option.games)} Spielen`
+  const wanted = FACING_TAGS.filter(([flag]) => open.has(flag))
+
+  // The usual pick may already answer the situation.
+  const usualFit = situational(usual, wanted, data, situation)
+  if (usualFit) {
+    open.delete(usualFit.flag)
+    return {
+      pick: usual,
+      adapted: false,
+      fits: true,
+      reasons: [`${label} am häufigsten gekauft: ${usage(usual)}.`, usualFit.reason]
+    }
+  }
+
+  for (const option of options) {
+    if (option.pickRate < MIN_ADAPT_SHARE) break
+    const fit = situational(option, wanted, data, situation)
+    if (!fit) continue
+    // Not at the price of a clearly worse result: skip options whose whole range lies below the usual pick's.
+    if (interval(option.wins, option.games).high < interval(usual.wins, usual.games).low) continue
+    open.delete(fit.flag)
+    return {
+      pick: option,
+      adapted: true,
+      reasons: [
+        fit.reason,
+        `${label} in ${usage(option)}.`,
+        `Ohne diese Situation wäre es ${itemName(usual)} (${percent(usual.pickRate)}).`
+      ]
+    }
+  }
+  return { pick: usual, adapted: false, reasons: [`${label} am häufigsten gekauft: ${usage(usual)}.`] }
+}
+
+export function recommend(
+  set: BuildSet,
+  facing: Facing,
+  data: StaticData,
+  situation: Situation
+): Recommendation | null {
+  const page = pickPage(set, data)
+  if (!page) return null
+
+  const active = (): Set<keyof Facing> =>
+    new Set((Object.keys(facing) as (keyof Facing)[]).filter((flag) => facing[flag]))
+  const isBoots = (option: ItemSetStat): boolean => data.items[option.ids[0]]?.tags.includes('Boots') ?? false
+  const itemName = (id: number): string => data.items[id]?.name ?? `Item ${id}`
+  const changes: string[] = []
+
+  const boots = pickItem(set.boots, 'Als Stiefel', active(), data, situation)
+  if (boots?.adapted) changes.push(`Stiefel: ${itemName(boots.pick.ids[0])} statt ${itemName(set.boots[0].ids[0])}`)
+
+  // Each situation flag changes at most one item, in the earliest slot that offers a fitting one.
+  const open = active()
+  const path: Choice<ItemSetStat>[] = []
+  const taken = new Set<number>()
+  set.slots.slice(0, PATH_LENGTH).forEach((slot, index) => {
+    const options = slot.filter((option) => !taken.has(option.ids[0]) && !isBoots(option))
+    const choice = pickItem(options, `Als ${index + 1}. Item`, open, data, situation)
+    if (!choice) return
+    taken.add(choice.pick.ids[0])
+    path.push(choice)
+    if (choice.adapted) {
+      changes.push(`${index + 1}. Item: ${itemName(choice.pick.ids[0])} statt ${itemName(options[0].ids[0])}`)
+    }
+  })
+
+  const covered = [...path, ...(boots ? [boots] : [])]
+    .filter((choice) => choice.fits)
+    .map((choice) => `${itemName(choice.pick.ids[0])}: ${choice.reasons[1]}`)
+
+  return { page, starter: set.starters[0] ?? null, boots, path, skill: set.skills[0] ?? null, changes, covered }
+}

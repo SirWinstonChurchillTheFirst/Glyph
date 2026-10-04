@@ -1,14 +1,18 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-bg: #0b0d10;
-  --color-panel: #13161b;
-  --color-line: #1f242c;
-  --color-text: #e6e8eb;
-  --color-dim: #8a919c;
-  --color-accent: #d4b26a;
-  --color-danger: #e5766b;
+  --color-ink: #0d1317;
+  --color-surface: #141c22;
+  --color-raised: #1b262e;
+  --color-line: #27343d;
+  --color-bone: #e8e3d6;
+  --color-mute: #8695a0;
+  /* Gold marks what GLYPH recommends, and nothing else. */
+  --color-gold: #d4b26a;
+  --color-up: #6cc5b0;
+  --color-down: #e37b68;
   --font-sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-display: Bahnschrift, 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
 }
 
 html,
@@ -19,12 +23,21 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-ink);
+  color: var(--color-bone);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.45;
   user-select: none;
   overflow: hidden;
+}
+
+/* Condensed display face for names and figures. */
+.display {
+  font-family: var(--font-display);
+  font-variation-settings: 'wdth' 80;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
 .drag {
@@ -35,11 +48,53 @@ body {
   -webkit-app-region: no-drag;
 }
 
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--color-line);
   border-radius: 4px;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+.drawer {
+  animation: drawer-in 160ms ease-out;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.loading {
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer,
+  .loading {
+    animation: none;
+  }
 }

@@ -81,11 +81,7 @@ export class LeagueWatcher {
     this.set({
       status: 'champ-select',
       summonerName: this.summonerName,
-      champSelect: {
-        ...selection,
-        gameMode: this.game?.gameMode ?? null,
-        mapId: this.game?.mapId ?? null
-      }
+      champSelect: { ...selection, gameMode: this.game?.gameMode ?? null }
     })
     return 1000
   }

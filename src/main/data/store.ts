@@ -1,59 +1,58 @@
 import { app } from 'electron'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import type { BuildData, Dataset, StaticData, UpdateResult } from '../../shared/types'
-import { buildDataset, latestVersion } from './updater'
+import type { StaticData, UpdateResult } from '../../shared/types'
+import { buildStatic, latestVersion } from './updater'
 
-const bundledDir = (): string => path.join(app.getAppPath(), 'data')
-const updatedDir = (): string => path.join(app.getPath('userData'), 'data')
+const bundledFile = (): string => path.join(app.getAppPath(), 'data', 'static.json')
+const updatedFile = (): string => path.join(app.getPath('userData'), 'data', 'static.json')
 
-async function read(dir: string): Promise<Dataset | null> {
+async function read(file: string): Promise<StaticData | null> {
   try {
-    const [builds, staticData] = await Promise.all([
-      readFile(path.join(dir, 'builds.json'), 'utf8'),
-      readFile(path.join(dir, 'static.json'), 'utf8')
-    ])
-    return { builds: JSON.parse(builds) as BuildData, static: JSON.parse(staticData) as StaticData }
+    return JSON.parse(await readFile(file, 'utf8')) as StaticData
   } catch {
     return null
   }
 }
 
-let cached: Dataset | null = null
+/** "16.19.1" -> comparable number */
+const versionValue = (version: string): number =>
+  version.split('.').reduce((value, part) => value * 1000 + Number(part), 0)
 
-/** The dataset shipped with the app, unless an in-app update has stored a newer one. */
-export async function getDataset(): Promise<Dataset> {
+let cached: StaticData | null = null
+
+/** The static data shipped with the app, unless an in-app update has stored a newer one. */
+export async function getStatic(): Promise<StaticData> {
   if (cached) return cached
-  const [bundled, updated] = await Promise.all([read(bundledDir()), read(updatedDir())])
+  const [bundled, updated] = await Promise.all([read(bundledFile()), read(updatedFile())])
   const newest =
     bundled && updated
-      ? updated.builds.generatedAt > bundled.builds.generatedAt
+      ? versionValue(updated.patch) > versionValue(bundled.patch)
         ? updated
         : bundled
       : (updated ?? bundled)
-  if (!newest) throw new Error('Keine Build-Daten gefunden. Bitte `npm run update-data` ausführen.')
-  return (cached = newest)
+  // A file written by an older app version lacks the fields the analysis needs.
+  const usable = newest && Object.values(newest.champions)[0]?.slug ? newest : bundled
+  if (!usable) throw new Error('Keine Spieldaten gefunden. Bitte `npm run update-data` ausführen.')
+  return (cached = usable)
 }
 
 export async function checkUpdate(): Promise<string | null> {
   try {
-    const [latest, current] = await Promise.all([latestVersion(), getDataset()])
-    return latest !== current.static.patch ? latest : null
+    const [latest, current] = await Promise.all([latestVersion(), getStatic()])
+    return latest !== current.patch ? latest : null
   } catch {
     return null
   }
 }
 
-export async function updateDataset(): Promise<UpdateResult> {
+export async function updateStatic(): Promise<UpdateResult> {
   try {
-    const dataset = await buildDataset({ locale: cached?.static.locale })
-    await mkdir(updatedDir(), { recursive: true })
-    await Promise.all([
-      writeFile(path.join(updatedDir(), 'builds.json'), JSON.stringify(dataset.builds)),
-      writeFile(path.join(updatedDir(), 'static.json'), JSON.stringify(dataset.static))
-    ])
-    cached = dataset
-    return { ok: true, dataset }
+    const data = await buildStatic()
+    await mkdir(path.dirname(updatedFile()), { recursive: true })
+    await writeFile(updatedFile(), JSON.stringify(data))
+    cached = data
+    return { ok: true, data }
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : String(error) }
   }

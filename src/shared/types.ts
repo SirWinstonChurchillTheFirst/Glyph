@@ -1,80 +1,163 @@
 export type Role = 'top' | 'jungle' | 'mid' | 'adc' | 'support'
 
-// ---------- Build data (data/builds.json) — ids only, names live in StaticData ----------
+// ---------- Static game data (data/static.json) ----------
 
-export interface RuneSetup {
-  primaryStyle: number
-  subStyle: number
-  /** Keystone + 3 primary runes (slot order), then 2 secondary runes. */
+/** Riot's five champion ratings, 1–3. */
+export interface Ratings {
+  damage: number
+  toughness: number
+  control: number
+  mobility: number
+  utility: number
+}
+
+export interface ChampionInfo {
+  /** Data Dragon key used in asset URLs, e.g. "MonkeyKing". */
+  key: string
+  name: string
+  /** Name as the statistics source expects it, e.g. "NUNU_WILLUMP". */
+  slug: string
+  adaptive: 'AD' | 'AP'
+  /** Riot subclasses, e.g. VANGUARD, ENCHANTER, ARTILLERY. Empty when unknown. */
+  classes: string[]
+  ratings: Ratings | null
+  positions: Role[]
+}
+
+export interface ItemInfo {
+  name: string
+  gold: number
+  /** Data Dragon tags, e.g. Armor, SpellBlock, Tenacity, Boots. */
+  tags: string[]
+  text: string
+}
+
+export interface RuneInfo {
+  name: string
+  icon: string
+  text: string
+  style: number
+  /** Row inside its tree; 0 is the keystone row. */
+  row: number
+}
+
+export interface StaticData {
+  /** Data Dragon version, e.g. "16.19.1". Also used in asset URLs. */
+  patch: string
+  champions: Record<string, ChampionInfo>
+  styles: Record<string, { name: string; icon: string }>
+  runes: Record<string, RuneInfo>
+  shards: Record<string, { name: string; icon: string }>
+  items: Record<string, ItemInfo>
+}
+
+// ---------- Statistics (from the statistics source, normalised) ----------
+
+export interface Stat {
+  games: number
+  wins: number
+  /** Share of the games in this sample, 0–1. */
+  pickRate: number
+}
+
+export interface RuneVariant extends Stat {
+  /** Keystone + 3 primary runes, then 2 secondary runes. */
   perks: number[]
   /** Offense, flex, defense. */
   shards: number[]
 }
 
-export interface RoleBuild {
+/** A "build" in GLYPH: keystone plus secondary tree, with its concrete variants. */
+export interface RunePageStat extends Stat {
+  key: string
+  keystone: number
+  primaryStyle: number
+  subStyle: number
+  variants: RuneVariant[]
+}
+
+export interface ItemSetStat extends Stat {
+  ids: number[]
+}
+
+export interface RuneUse extends Stat {
+  id: number
+}
+
+export interface SkillStat extends Stat {
+  order: string[]
+}
+
+export interface LaneVerdict {
+  tip: string | null
+  /** Who the source rates as ahead in lane. */
+  advantage: 'me' | 'opponent' | 'even' | null
+  soloKill: 'me' | 'opponent' | 'even' | null
+  playStyle: string | null
+}
+
+/** Everything known about how a champion is built, for one matchup or summed over several. */
+export interface BuildSet {
+  /** One id for a matchup; several when summed over the most played matchups. */
+  opponentIds: number[]
+  /** Games behind the rune statistics. */
+  sample: number
+  /** For a sum: share of all the champion's games that the included matchups cover. */
+  coverage: number | null
+  pages: RunePageStat[]
+  runeUse: { primary: RuneUse[]; secondary: RuneUse[]; shards: RuneUse[][] }
+  starters: ItemSetStat[]
+  boots: ItemSetStat[]
+  /** Three-item combinations in purchase order. */
+  cores: ItemSetStat[]
+  /** Options per purchase slot: index 0 is the first completed item. */
+  slots: ItemSetStat[][]
+  /** Item usage regardless of slot. */
+  items: ItemSetStat[]
+  skills: SkillStat[]
+  lane: LaneVerdict | null
+  /** For a sum: how each build did against each included opponent. */
+  perOpponent: { opponentId: number; pages: { key: string; games: number; wins: number }[] }[]
+}
+
+export interface ChampionProfile {
+  championId: number
+  role: Role
   games: number
   winRate: number
-  runes: RuneSetup
-  startItems: number[]
-  /** Most common first three purchases, boots included. */
-  coreItems: number[]
-  /** Most picked options for the 4th, 5th and 6th item. */
-  lateItems: number[][]
-  /** Ability per level, 1–18. */
-  skillOrder: string[]
-  /** Max order, e.g. "QWE". */
-  skillPriority: string
-}
-
-export interface ChampionBuilds {
-  defaultRole: Role
-  roles: Partial<Record<Role, RoleBuild>>
-}
-
-export interface BuildData {
-  /** Patch the statistics were collected on, e.g. "16.19". */
-  patch: string
-  source: string
-  generatedAt: string
-  /** Keyed by numeric champion id. */
-  champions: Record<string, ChampionBuilds>
-}
-
-// ---------- Static game data (data/static.json), from Data Dragon ----------
-
-export interface StaticData {
-  /** Data Dragon version, e.g. "16.19.1". Also used in asset URLs. */
-  patch: string
-  locale: string
-  champions: Record<string, { key: string; name: string }>
-  styles: Record<string, { name: string; icon: string }>
-  runes: Record<string, { name: string; icon: string }>
-  shards: Record<string, { name: string; icon: string }>
-  items: Record<string, { name: string; boots?: boolean }>
-}
-
-export interface Dataset {
-  builds: BuildData
-  static: StaticData
+  pickRate: number
+  banRate: number
+  kda: number
+  /** Source tier for this role: 0 is strongest, 5 weakest. */
+  tier: number | null
+  rank: number | null
+  positions: { role: Role; games: number; roleRate: number }[]
+  /** Build styles as classified by the source. */
+  archetypes: { name: string; games: number; wins: number; share: number }[]
+  matchups: { opponentId: number; games: number; wins: number }[]
+  /** Win rate by game length; `from` is the bucket's start minute. */
+  gameLengths: { from: number; winRate: number }[]
+  trend: { patch: string; winRate: number }[]
+  patch: string | null
 }
 
 // ---------- League client state ----------
 
-export type LeagueStatus =
-  | 'not-running'
-  /** Client process exists but the LCU does not answer yet. */
-  | 'starting'
-  /** Client process exists but the LCU has not answered for a while. */
-  | 'unreachable'
-  | 'idle'
-  | 'champ-select'
+export type LeagueStatus = 'not-running' | 'starting' | 'unreachable' | 'idle' | 'champ-select'
+
+export interface DraftSlot {
+  /** Locked or hovered champion; null while unknown. */
+  championId: number | null
+  role: Role | null
+  isMe: boolean
+}
 
 export interface ChampSelectState {
-  /** Locked or hovered champion; null until the player picks one. */
   championId: number | null
   role: Role | null
   gameMode: string | null
-  mapId: number | null
+  myTeam: DraftSlot[]
+  theirTeam: DraftSlot[]
 }
 
 export interface LeagueState {
@@ -87,7 +170,10 @@ export interface LeagueState {
 
 export interface ImportRequest {
   name: string
-  runes: RuneSetup
+  primaryStyle: number
+  subStyle: number
+  perks: number[]
+  shards: number[]
   /** Set after the user confirmed overwriting this page because no slot was free. */
   replacePageId?: number
 }
@@ -98,16 +184,17 @@ export type ImportResult =
       ok: false
       code: 'NOT_CONNECTED' | 'NO_FREE_PAGE' | 'INVALID_PAGE' | 'REQUEST_FAILED'
       message: string
-      /** With NO_FREE_PAGE: the page that could be overwritten. */
       replaceable?: { id: number; name: string }
     }
 
-export type UpdateResult = { ok: true; dataset: Dataset } | { ok: false; message: string }
+export type UpdateResult = { ok: true; data: StaticData } | { ok: false; message: string }
 
-/** Exposed to the renderer as `window.api`. The UI never talks to the LCU itself. */
+/** Exposed to the renderer as `window.api`. The UI never talks to the LCU or the web itself. */
 export interface Api {
-  getData(): Promise<Dataset>
-  /** Returns the newer Data Dragon version if the local data is behind, else null. */
+  getStatic(): Promise<StaticData>
+  getProfile(championId: number, role: Role): Promise<ChampionProfile>
+  /** `opponentId` null: summed over the champion's most played matchups. */
+  getBuilds(championId: number, role: Role, opponentId: number | null): Promise<BuildSet>
   checkUpdate(): Promise<string | null>
   updateData(): Promise<UpdateResult>
   getState(): Promise<LeagueState>

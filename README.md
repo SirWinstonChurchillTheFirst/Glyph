@@ -1,7 +1,8 @@
 # Glyph
 
-Kleines Champion-Select-Tool für League of Legends: Champion erkennen → Runen, Build und
-Skill Order anzeigen → Runen per Klick in den Client importieren. Sonst nichts.
+Entscheidungshilfe für den Champion Select in League of Legends: Welche Runen, welche Items,
+gegen wen – und warum. Jede Empfehlung nennt die Zahlen, auf denen sie beruht, und jede Winrate
+wird mit ihrem 95-%-Bereich gezeichnet statt mit einem erfundenen Confidence-Wert.
 
 ## Starten
 
@@ -10,47 +11,57 @@ npm install
 npm run dev        # Entwicklung mit Hot Reload
 npm run build      # Produktions-Build nach out/
 npm start          # gebaute App starten
-npm run dist       # portable .exe nach dist/
+npm run dist       # Windows-Installer nach dist/
 ```
 
-Ohne laufendes League lässt sich jeder Champion über das Suchfeld manuell öffnen (Testmodus).
+Ohne laufendes League lässt sich alles über die Suche (Strg K) öffnen: Champion, „Bard vs
+Brand“, Item, Rune oder Build.
 
 ## Aufbau
 
 ```
-UI (src/renderer)  →  window.api (src/preload)  →  LeagueService (src/main/league)  →  LCU
+DATA            src/main/data/opgg.ts      Statistiken holen, normalisieren, cachen
+                src/main/data/updater.ts   statische Spieldaten erzeugen
+                src/main/league/           League Client (LCU)
+ANALYSIS        src/shared/analysis.ts     Wilson-Intervall, Summenbildung, Team-Analyse
+RECOMMENDATION  src/shared/recommend.ts    Auswahl mit Begründung
+UI              src/renderer/src/          zeigt nur an; rechnet nicht selbst
 ```
 
-- `src/main/league/credentials.ts` – findet den Client (Lockfile, sonst Prozess-Kommandozeile)
-- `src/main/league/lcu.ts` – HTTPS-Aufrufe an `127.0.0.1`
-- `src/main/league/LeagueService.ts` – alle LCU-Endpunkte, inklusive Runen-Import
-- `src/main/league/watcher.ts` – Polling und Zustandsmeldungen an die UI
-- `src/main/data/` – Datensatz laden und aktualisieren
-- `src/shared/types.ts` – Datenmodell und die API zwischen UI und Hauptprozess
+Die UI spricht ausschließlich über `window.api` (`src/preload`, Vertrag in `src/shared/types.ts`).
 
-Verwendete LCU-Endpunkte (geprüft gegen das Schema von Client 16.19):
-`GET /lol-gameflow/v1/gameflow-phase`, `GET /lol-gameflow/v1/session`,
-`GET /lol-summoner/v1/current-summoner`, `GET /lol-champ-select/v1/session`,
-`GET|POST /lol-perks/v1/pages`, `DELETE /lol-perks/v1/pages/{id}`,
-`GET /lol-perks/v1/inventory`, `GET|PUT /lol-perks/v1/currentpage`.
+## Datenquellen
 
-## Daten
+| Quelle | Wofür | Abruf |
+| --- | --- | --- |
+| OP.GG, öffentlicher MCP-Endpunkt (`mcp-api.op.gg`) | Winrate/Pick/Ban/Tier, Runenseiten, Items je Slot, Matchups, Spieldauer, Lane-Einschätzung | bei Bedarf, 24 h auf der Platte gecacht |
+| Data Dragon (Riot) | Champions, Items mit Eigenschaften, Runen, Bilder | `data/static.json`, pro Patch |
+| Meraki Analytics (offenes Projekt) | Riots Champion-Klassen, Wertungen 1–3, Schadensart, Positionen | `data/static.json`, pro Patch |
 
-`data/builds.json` (Runen, Items, Skill Order je Champion und Rolle, nur IDs) und
-`data/static.json` (Namen und Icons aus Data Dragon). Beide werden erzeugt, nicht von Hand
-gepflegt:
+`npm run update-data` erzeugt `data/static.json` neu; die App bietet das bei einem neuen Patch
+auch selbst in der Fußzeile an.
 
-```
-npm run update-data                   # englische Namen
-npm run update-data -- --locale de_DE # deutsche Namen
-```
+OP.GG liefert die tiefen Daten (mehrere Runenseiten, Item-Statistiken) nur je Matchup. Ohne
+gewählten Gegner summiert Glyph deshalb die sechs meistgespielten Matchups und sagt dazu, welchen
+Anteil aller Spiele das abdeckt.
 
-Die App prüft beim Start, ob Data Dragon einen neueren Patch kennt, und bietet dann in der
-Fußzeile an, die Daten nachzuladen.
+## Wie Empfehlungen entstehen
 
-Die Build-Statistiken stammen von einem öffentlichen, aber nicht dokumentierten Endpunkt von
-u.gg. Alles, was von dessen Format abhängt, steht in `src/main/data/updater.ts` (`parseRole`).
-Champion-Bilder, Item- und Runen-Icons kommen direkt von Data Dragon.
+- **Runen:** unter den Seiten mit mindestens 30 Spielen die mit dem höchsten unteren Rand des
+  95-%-Bereichs. „Klarer Favorit“ heißt: ihr Bereich liegt vollständig über dem der nächsten.
+- **Items:** je Slot das meistgekaufte. Ist „viel AD / AP / CC“ markiert (im Champion Select aus
+  dem Draft abgeleitet), wird pro Markierung höchstens ein Item und die Stiefel getauscht – nur
+  gegen eine Option mit passender Eigenschaft, die in mindestens 10 % der Spiele gekauft wird und
+  nicht klar schlechter abschneidet.
+- **Team-Analyse:** Durchschnitt von Riots Wertungen (Frontline, Crowd Control, Mobilität) und
+  Anzahl der Champions bestimmter Klassen (Engage, Peel, Poke, Burst).
+
+## Was die Quelle nicht hergibt
+
+Kaufzeiten von Items, Früh-/Mittel-/Spätspiel je Build, Phasen-Daten je Matchup, Matchups je Rune
+und benannte Build-Archetypen mit Item-Listen. Die App sagt das an der jeweiligen Stelle, statt
+Werte zu erfinden. Neue Felder kommen in `parseGuide` (`opgg.ts`) dazu und stehen dann allen
+Schichten zur Verfügung.
 
 ## Runen-Import
 

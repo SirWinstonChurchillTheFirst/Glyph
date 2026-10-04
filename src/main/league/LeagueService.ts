@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import type { ChampSelectState, ImportRequest, ImportResult, Role } from '../../shared/types'
+import type { ChampSelectState, DraftSlot, ImportRequest, ImportResult, Role } from '../../shared/types'
 import { discoverClient, findRiotClient, type LcuCredentials } from './credentials'
 import { LcuError, lcuRequest } from './lcu'
 
@@ -23,9 +23,17 @@ interface RunePage {
   current: boolean
 }
 
+interface SessionPlayer {
+  cellId: number
+  championId: number
+  championPickIntent: number
+  assignedPosition: string
+}
+
 interface ChampSelectSession {
   localPlayerCellId: number
-  myTeam: { cellId: number; championId: number; championPickIntent: number; assignedPosition: string }[]
+  myTeam?: SessionPlayer[]
+  theirTeam?: SessionPlayer[]
 }
 
 interface GameflowSession {
@@ -80,8 +88,8 @@ export class LeagueService {
     }
   }
 
-  /** The local player's pick in the running champ select, or null outside of one. */
-  async getSelection(): Promise<Pick<ChampSelectState, 'championId' | 'role'> | null> {
+  /** Both teams of the running champ select as far as they are visible, or null outside of one. */
+  async getSelection(): Promise<Omit<ChampSelectState, 'gameMode'> | null> {
     let session: ChampSelectSession
     try {
       session = await this.request<ChampSelectSession>('GET', '/lol-champ-select/v1/session')
@@ -89,11 +97,19 @@ export class LeagueService {
       if (error instanceof LcuError && error.status === 404) return null
       throw error
     }
-    const me = session.myTeam?.find((player) => player.cellId === session.localPlayerCellId)
-    if (!me) return { championId: null, role: null }
+    const slot = (player: SessionPlayer): DraftSlot => ({
+      championId: player.championId || player.championPickIntent || null,
+      role: POSITIONS[player.assignedPosition?.toLowerCase()] ?? null,
+      isMe: player.cellId === session.localPlayerCellId
+    })
+    const myTeam = (session.myTeam ?? []).map(slot)
+    const me = myTeam.find((player) => player.isMe)
     return {
-      championId: me.championId || me.championPickIntent || null,
-      role: POSITIONS[me.assignedPosition?.toLowerCase()] ?? null
+      championId: me?.championId ?? null,
+      role: me?.role ?? null,
+      myTeam,
+      // Enemy cells share ids with nobody on this side; never mark one as the local player.
+      theirTeam: (session.theirTeam ?? []).map((player) => ({ ...slot(player), isMe: false }))
     }
   }
 
@@ -109,7 +125,7 @@ export class LeagueService {
     return this.request<RunePage>('GET', '/lol-perks/v1/currentpage')
   }
 
-  async importRunes({ name, runes, replacePageId }: ImportRequest): Promise<ImportResult> {
+  async importRunes({ name, replacePageId, ...runes }: ImportRequest): Promise<ImportResult> {
     try {
       const pages = await this.request<RunePage[]>('GET', '/lol-perks/v1/pages')
       const custom = pages.filter((page) => page.isDeletable)

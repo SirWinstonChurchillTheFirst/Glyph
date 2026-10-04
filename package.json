@@ -1,7 +1,7 @@
 {
   "name": "glyph",
-  "version": "0.1.0",
-  "description": "Kleines Champion-Select-Tool: Runen, Build, Skill Order.",
+  "version": "0.2.0",
+  "description": "Entscheidungshilfe für den Champion Select: Runen, Items, Matchups – mit Begründung.",
   "main": "./out/main/index.js",
   "private": true,
   "scripts": {

@@ -2,7 +2,9 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type { Api, LeagueState } from '../shared/types'
 
 const api: Api = {
-  getData: () => ipcRenderer.invoke('data:get'),
+  getStatic: () => ipcRenderer.invoke('data:static'),
+  getProfile: (championId, role) => ipcRenderer.invoke('stats:profile', championId, role),
+  getBuilds: (championId, role, opponentId) => ipcRenderer.invoke('stats:builds', championId, role, opponentId),
   checkUpdate: () => ipcRenderer.invoke('data:check-update'),
   updateData: () => ipcRenderer.invoke('data:update'),
   getState: () => ipcRenderer.invoke('league:state'),

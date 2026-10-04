@@ -1,11 +1,12 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
 import path from 'node:path'
-import type { ImportRequest } from '../shared/types'
-import { checkUpdate, getDataset, updateDataset } from './data/store'
+import type { ImportRequest, Role } from '../shared/types'
+import { getBuilds, getProfile } from './data/opgg'
+import { checkUpdate, getStatic, updateStatic } from './data/store'
 import { LeagueService } from './league/LeagueService'
 import { LeagueWatcher } from './league/watcher'
 
-const BACKGROUND = '#0b0d10'
+const BACKGROUND = '#0d1317'
 
 let window: BrowserWindow | null = null
 
@@ -14,15 +15,15 @@ const watcher = new LeagueWatcher(league, (state) => window?.webContents.send('l
 
 function createWindow(): void {
   window = new BrowserWindow({
-    width: 460,
-    height: 880,
-    minWidth: 400,
-    minHeight: 560,
+    width: 1240,
+    height: 820,
+    minWidth: 980,
+    minHeight: 620,
     backgroundColor: BACKGROUND,
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: BACKGROUND, symbolColor: '#8a919c', height: 40 },
+    titleBarOverlay: { color: BACKGROUND, symbolColor: '#8695a0', height: 44 },
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -55,9 +56,15 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(() => {
     nativeTheme.themeSource = 'dark'
 
-    ipcMain.handle('data:get', () => getDataset())
+    ipcMain.handle('data:static', () => getStatic())
     ipcMain.handle('data:check-update', () => checkUpdate())
-    ipcMain.handle('data:update', () => updateDataset())
+    ipcMain.handle('data:update', () => updateStatic())
+    ipcMain.handle('stats:profile', async (_event, championId: number, role: Role) =>
+      getProfile(await getStatic(), championId, role)
+    )
+    ipcMain.handle('stats:builds', async (_event, championId: number, role: Role, opponentId: number | null) =>
+      getBuilds(await getStatic(), championId, role, opponentId)
+    )
     ipcMain.handle('league:state', () => watcher.state)
     ipcMain.handle('league:import-runes', (_event, request: ImportRequest) => league.importRunes(request))
     ipcMain.handle('league:launch', () => league.launchLeague())
