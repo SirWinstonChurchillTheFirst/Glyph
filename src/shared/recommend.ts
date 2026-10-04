@@ -42,7 +42,10 @@ const MIN_PAGE_GAMES = 30
 const SOLID_SAMPLE = 300
 /** An item must be bought at least this often in its slot to replace the most common one. */
 const MIN_ADAPT_SHARE = 0.1
-const PATH_LENGTH = 4
+/** Five items plus boots: a full build. */
+const PATH_LENGTH = 5
+/** A purchase slot with fewer games than this says too little; overall item usage decides instead. */
+const MIN_SLOT_GAMES = 20
 
 const FACING_TAGS: [flag: keyof Facing, tag: string, gives: string][] = [
   ['ad', 'Armor', 'Rüstung'],
@@ -177,16 +180,34 @@ export function recommend(
   const open = active()
   const path: Choice<ItemSetStat>[] = []
   const taken = new Set<number>()
-  set.slots.slice(0, PATH_LENGTH).forEach((slot, index) => {
+  for (const [index, slot] of set.slots.slice(0, PATH_LENGTH).entries()) {
     const options = slot.filter((option) => !taken.has(option.ids[0]) && !isBoots(option))
+    // Late slots are reached in few games; below the threshold the rest is filled from overall usage.
+    if (!options[0] || options[0].games < MIN_SLOT_GAMES) break
     const choice = pickItem(options, `Als ${index + 1}. Item`, open, data, situation, set.quick === true && index < 3)
-    if (!choice) return
+    if (!choice) break
     taken.add(choice.pick.ids[0])
     path.push(choice)
     if (choice.adapted) {
       changes.push(`${index + 1}. Item: ${itemName(choice.pick.ids[0])} statt ${itemName(options[0].ids[0])}`)
     }
-  })
+  }
+
+  // Complete the build with the most bought items that are not in it yet.
+  for (const option of set.items) {
+    if (path.length >= PATH_LENGTH) break
+    if (option.ids.length !== 1 || taken.has(option.ids[0]) || isBoots(option)) continue
+    // Support and jungle starter upgrades appear in the usage list but are not a purchase of their own.
+    if ((data.items[option.ids[0]]?.gold ?? 0) < 1600) continue
+    taken.add(option.ids[0])
+    path.push({
+      pick: option,
+      adapted: false,
+      reasons: [
+        `Für diesen Kauf-Slot gibt es zu wenige Spiele. Unter den übrigen Items am häufigsten gekauft: ${percent(option.pickRate)} der Spiele, ${percent(winRate(option))} Winrate bei ${count(option.games)} Spielen.`
+      ]
+    })
+  }
 
   const covered = [...path, ...(boots ? [boots] : [])]
     .filter((choice) => choice.fits)
