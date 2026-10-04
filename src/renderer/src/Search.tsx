@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { CornerDownLeft, Search as SearchIcon } from 'lucide-react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import type { BuildSet, StaticData } from '../../shared/types'
 import { pageName } from './lib'
 import { ChampionIcon, ItemIcon, RuneIcon, type Detail } from './ui'
@@ -20,6 +21,15 @@ interface Props {
   onDetail: (detail: Detail) => void
   onPage: (key: string) => void
   onClose: () => void
+}
+
+const GROUPS = ['Champion', 'Matchup', 'Build', 'Item', 'Rune']
+const GROUP_LABELS: Record<string, string> = {
+  Champion: 'Champions',
+  Matchup: 'Matchups',
+  Build: 'Builds',
+  Item: 'Items',
+  Rune: 'Runen'
 }
 
 const normal = (text: string): string => text.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -126,7 +136,8 @@ export function Search({ data, championId, builds, onChampion, onMatchup, onDeta
           run: () => onDetail({ kind: 'rune', id: Number(id) })
         })
       )
-    return out
+    // Grouped by kind; the sort is stable, so the order inside a group stays.
+    return out.sort((a, b) => GROUPS.indexOf(a.kind) - GROUPS.indexOf(b.kind))
   }, [query, champions, data, championId, builds, onChampion, onMatchup, onDetail, onPage])
 
   useEffect(() => setIndex(0), [query])
@@ -138,13 +149,15 @@ export function Search({ data, championId, builds, onChampion, onMatchup, onDeta
   }
 
   return (
-    <div className="absolute inset-0 z-20 flex justify-center bg-ink/70 pt-20" onMouseDown={onClose}>
+    <div className="absolute inset-0 z-40 flex justify-center bg-ink/75 pt-[12vh] backdrop-blur-[2px]" onMouseDown={onClose}>
       <div
-        className="h-fit w-[520px] overflow-hidden rounded-lg border border-line bg-surface shadow-2xl shadow-black/60"
+        className="h-fit w-[580px] overflow-hidden rounded-xl border border-line bg-surface shadow-2xl shadow-black/60"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <input
-          autoFocus
+        <div className="flex items-center gap-3 px-4">
+          <SearchIcon size={16} className="shrink-0 text-mute" />
+          <input
+            autoFocus
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
@@ -158,24 +171,35 @@ export function Search({ data, championId, builds, onChampion, onMatchup, onDeta
               setIndex((value) => Math.max(0, value - 1))
             }
           }}
-          placeholder="Champion, „Bard vs Brand“, Item, Rune oder Build"
-          className="h-12 w-full bg-transparent px-4 text-[15px] outline-none placeholder:text-mute"
-        />
+            placeholder="Champion, Matchup oder Item suchen …"
+            className="h-12 w-full bg-transparent text-[15px] outline-none placeholder:text-mute"
+          />
+          <kbd className="shrink-0 rounded border border-line px-1.5 text-[10px] text-mute">Esc</kbd>
+        </div>
         {results.length > 0 && (
           <div className="max-h-[420px] overflow-y-auto border-t border-line p-1.5">
             {results.map((result, position) => (
-              <button
-                key={result.key}
+              <Fragment key={result.key}>
+                {result.kind !== results[position - 1]?.kind && (
+                  <div className="px-2.5 pt-2 pb-1 text-[11px] text-mute">{GROUP_LABELS[result.kind]}</div>
+                )}
+                <button
                 onClick={() => choose(result)}
                 onMouseEnter={() => setIndex(position)}
                 className={`flex w-full items-center gap-3 rounded px-2.5 py-1.5 text-left ${position === index ? 'bg-raised' : ''}`}
               >
                 {result.icon}
                 <span className="min-w-0 flex-1 truncate">{result.label}</span>
-                <span className="text-[11px] text-mute">{result.kind}</span>
-              </button>
+                  {position === index && <CornerDownLeft size={13} className="text-mute" />}
+                </button>
+              </Fragment>
             ))}
           </div>
+        )}
+        {query.trim() === '' && (
+          <p className="border-t border-line px-4 py-3 text-[12px] text-mute">
+            Tipp: „Bard vs Brand“ öffnet direkt das Matchup. Namen sind englisch.
+          </p>
         )}
         {query.trim() !== '' && results.length === 0 && (
           <p className="border-t border-line px-4 py-3 text-mute">Nichts gefunden. Champion-, Item- und Runennamen sind englisch.</p>

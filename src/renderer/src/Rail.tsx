@@ -109,7 +109,7 @@ export function Rail(props: RailProps) {
               type="checkbox"
               checked={facing[flag]}
               onChange={(event) => onFacing(flag, event.target.checked)}
-              className="mt-0.5 accent-[#d4b26a]"
+              className="mt-0.5 accent-[#d6ad62]"
             />
             <span>
               {label}

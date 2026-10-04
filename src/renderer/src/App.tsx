@@ -1,40 +1,31 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { analyzeTeam, laneOpponent } from '../../shared/analysis'
 import { recommend, type Facing, type Situation } from '../../shared/recommend'
-import type { LeagueState, LeagueStatus, Role, StaticData } from '../../shared/types'
+import type { LeagueState, Role, StaticData } from '../../shared/types'
 import { Drawer } from './Drawer'
-import { ROLE_LABELS, count, percent, splashUrl, useAsync } from './lib'
+import { ChampionHeader, type Tab } from './ChampionHeader'
+import { Home } from './Home'
+import { useAsync } from './lib'
 import { Rail } from './Rail'
 import { Search } from './Search'
-import { Figure, Loading, Notice, type Detail } from './ui'
+import { Footer, Header } from './shell'
+import { Notice, Skeleton, type Detail } from './ui'
 import { BuildsView, DecisionView, ItemsView, MatchupsView, type View } from './views'
 
-const STATUS_LABELS: Record<LeagueStatus, string> = {
-  'not-running': 'League nicht gestartet',
-  starting: 'League startet …',
-  unreachable: 'Client nicht erreichbar',
-  idle: 'League verbunden',
-  'champ-select': 'Champion Select'
-}
+const RECENT_KEY = 'glyph.recent'
+const RECENT_MAX = 8
 
-const TABS = [
-  ['decision', 'Entscheidung'],
-  ['builds', 'Builds'],
-  ['items', 'Items'],
-  ['matchups', 'Matchups']
-] as const
-type Tab = (typeof TABS)[number][0]
+/** Champions opened before. Only a convenience, so a browser store that fails is simply ignored. */
+function loadRecent(): number[] {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]')
+    return Array.isArray(stored) ? stored.filter((id) => typeof id === 'number') : []
+  } catch {
+    return []
+  }
+}
 
 const NO_FACING: Facing = { ad: false, ap: false, cc: false }
-
-function Message({ title, children }: { title: string; children?: ReactNode }) {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-      <h1 className="display text-[28px]">{title}</h1>
-      {children}
-    </div>
-  )
-}
 
 export function App() {
   const [data, setData] = useState<StaticData | null>(null)
@@ -52,6 +43,7 @@ export function App() {
   const [launch, setLaunch] = useState<{ busy: boolean; message?: string }>({ busy: false })
   const [newPatch, setNewPatch] = useState<string | null>(null)
   const [update, setUpdate] = useState<{ busy: boolean; message?: string }>({ busy: false })
+  const [recent, setRecent] = useState(loadRecent)
 
   useEffect(() => {
     window.api.getStatic().then(setData, (error: Error) => setDataError(error.message))
@@ -91,6 +83,16 @@ export function App() {
   useEffect(() => {
     setDetail(null)
     setPageChoice(null)
+    if (championId === null) return
+    setRecent((current) => {
+      const next = [championId, ...current.filter((id) => id !== championId)].slice(0, RECENT_MAX)
+      try {
+        localStorage.setItem(RECENT_KEY, JSON.stringify(next))
+      } catch {
+        // Not being able to remember is fine.
+      }
+      return next
+    })
   }, [championId])
 
   // ---------- Draft analysis ----------
@@ -201,31 +203,25 @@ export function App() {
   }
 
   // ---------- Main area ----------
-  const searchButton = (
-    <button
-      onClick={() => setSearching(true)}
-      className="h-10 rounded-md border border-line bg-surface px-5 text-mute hover:border-mute hover:text-bone"
-    >
-      Champion oder Matchup suchen <span className="ml-2 text-[11px]">Strg K</span>
-    </button>
-  )
-
   let main: ReactNode
   if (dataError) {
     main = (
-      <Message title="Spieldaten konnten nicht geladen werden">
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 px-8 text-center">
+        <h1 className="display text-[22px]">Spieldaten konnten nicht geladen werden</h1>
         <p className="text-mute">{dataError}</p>
-      </Message>
+      </div>
     )
   } else if (!data) {
     main = null
   } else if (championId !== null && champion) {
-    const positions = profile.data?.positions.length
-      ? [...profile.data.positions].filter((position) => position.roleRate >= 0.05 || position.role === role).sort((a, b) => b.games - a.games).map((position) => position.role)
+    const roles = profile.data?.positions.length
+      ? [...profile.data.positions]
+          .filter((position) => position.roleRate >= 0.05 || position.role === role)
+          .sort((a, b) => b.games - a.games)
+          .map((position) => position.role)
       : champion.positions.length
         ? champion.positions
         : [role]
-    const stats = profile.data
     const view: View | null =
       builds.data && recommendation
         ? {
@@ -248,135 +244,59 @@ export function App() {
 
     main = (
       <>
-        <header className="relative shrink-0 overflow-hidden border-b border-line">
-          <img src={splashUrl(champion.key)} alt="" className="absolute inset-y-0 right-0 h-full w-2/3 object-cover object-[50%_18%] opacity-70" />
-          <div className="absolute inset-0 bg-linear-to-r from-ink via-ink/85 to-ink/10" />
-          <div className="relative flex items-end justify-between gap-6 px-6 pt-5 pb-4">
-            <div>
-              <div className="flex items-baseline gap-4">
-                <h1 className="display text-[44px] leading-none">{champion.name}</h1>
-                {opponentId !== null && (
-                  <span className="display text-[20px] text-mute">gegen {data.champions[opponentId]?.name}</span>
-                )}
-              </div>
-              <div className="mt-3 flex items-center gap-1">
-                {positions.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => setRoleChoice({ championId, role: option })}
-                    className={`rounded-full px-3 py-1 text-[12px] ${
-                      option === role ? 'bg-bone text-ink' : 'text-mute hover:text-bone'
-                    }`}
-                  >
-                    {ROLE_LABELS[option]}
-                  </button>
-                ))}
-                {champSelect?.gameMode && champSelect.gameMode !== 'CLASSIC' && (
-                  <span className="ml-2 text-[11px] text-mute">{champSelect.gameMode}: Daten aus Ranked Solo</span>
-                )}
-                {!champSelect && (
-                  <button onClick={() => setManualId(null)} className="ml-2 text-[11px] text-mute hover:text-bone">
-                    Champion schließen
-                  </button>
-                )}
-              </div>
-            </div>
-            {stats && stats.games > 0 && (
-              <div className="flex gap-7 rounded-md bg-ink/70 px-4 py-3 backdrop-blur-sm">
-                <Figure label="Winrate" value={percent(stats.winRate)} hint={`${count(stats.games)} Spiele in dieser Rolle`} />
-                <Figure label="Pickrate" value={percent(stats.pickRate)} />
-                <Figure label="Banrate" value={percent(stats.banRate)} />
-                <Figure
-                  label={stats.rank ? `Tier · Rang ${stats.rank}` : 'Tier'}
-                  value={stats.tier === null ? '–' : stats.tier === 0 ? 'OP' : stats.tier}
-                  hint="OP.GG-Einstufung in dieser Rolle: 1 = stark, 5 = schwach"
-                />
-              </div>
+        <ChampionHeader
+          champion={champion}
+          opponentName={opponentId !== null ? data.champions[opponentId]?.name : undefined}
+          roles={roles}
+          role={role}
+          onRole={(next) => setRoleChoice({ championId, role: next })}
+          stats={profile.data}
+          note={
+            champSelect?.gameMode && champSelect.gameMode !== 'CLASSIC'
+              ? `${champSelect.gameMode}: Daten aus Ranked Solo`
+              : undefined
+          }
+          onClose={champSelect ? undefined : () => setManualId(null)}
+          tab={tab}
+          onTab={setTab}
+        />
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+          {/* Aligned with the header; very wide windows keep the panels from stretching. */}
+          <div className="max-w-[1320px]">
+            {builds.error ? (
+              <Notice onRetry={builds.retry}>{builds.error}</Notice>
+            ) : !view ? (
+              <Skeleton
+                label={
+                  opponentId !== null
+                    ? `Lade Matchup gegen ${data.champions[opponentId]?.name} …`
+                    : 'Lade die häufigsten Matchups und summiere die Builds …'
+                }
+              />
+            ) : tab === 'decision' ? (
+              <DecisionView {...view} />
+            ) : tab === 'builds' ? (
+              <BuildsView {...view} />
+            ) : tab === 'items' ? (
+              <ItemsView {...view} />
+            ) : (
+              <MatchupsView {...view} />
             )}
           </div>
-          <nav className="relative flex gap-1 px-5">
-            {TABS.map(([id, label]) => (
-              <button
-                key={id}
-                onClick={() => setTab(id)}
-                className={`border-b-2 px-3 py-2 ${
-                  tab === id ? 'border-bone text-bone' : 'border-transparent text-mute hover:text-bone'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto p-5">
-          {builds.error ? (
-            <Notice onRetry={builds.retry}>{builds.error}</Notice>
-          ) : !view ? (
-            <Loading
-              label={
-                opponentId !== null
-                  ? `Lade Matchup gegen ${data.champions[opponentId]?.name} …`
-                  : 'Lade die häufigsten Matchups und summiere die Builds …'
-              }
-            />
-          ) : tab === 'decision' ? (
-            <DecisionView {...view} />
-          ) : tab === 'builds' ? (
-            <BuildsView {...view} />
-          ) : tab === 'items' ? (
-            <ItemsView {...view} />
-          ) : (
-            <MatchupsView {...view} />
-          )}
         </div>
       </>
     )
-  } else if (status === 'champ-select') {
-    main = (
-      <Message title="Champion Select erkannt">
-        <p className="text-mute">Wähle einen Champion – die Analyse erscheint automatisch.</p>
-      </Message>
-    )
-  } else if (status === 'idle') {
-    main = (
-      <Message title="Bereit">
-        <p className="text-mute">Warte auf Champion Select …</p>
-        {searchButton}
-      </Message>
-    )
-  } else if (status === 'starting') {
-    main = (
-      <Message title="League startet …">
-        <p className="text-mute">Verbinde mit dem Client.</p>
-      </Message>
-    )
-  } else if (status === 'unreachable') {
-    main = (
-      <Message title="League Client nicht erreichbar">
-        <p className="max-w-md text-mute">
-          League läuft, antwortet aber nicht. Die Verbindung wird weiter versucht – falls es so bleibt, starte den
-          Client neu.
-        </p>
-        {searchButton}
-      </Message>
-    )
   } else {
     main = (
-      <Message title="League of Legends wurde nicht gefunden">
-        <p className="text-mute">Starte League, um im Champion Select automatisch eine Analyse zu erhalten.</p>
-        <div className="flex gap-3">
-          <button
-            onClick={() => void launchLeague()}
-            disabled={launch.busy}
-            className="h-10 rounded-md bg-gold px-6 font-semibold text-ink hover:brightness-110 disabled:opacity-40"
-          >
-            {launch.busy ? 'League wird gestartet …' : 'League starten'}
-          </button>
-          {searchButton}
-        </div>
-        {launch.message && <p className="text-[12px] text-down">{launch.message}</p>}
-      </Message>
+      <Home
+        status={status}
+        data={data}
+        recent={recent}
+        launch={launch}
+        onLaunch={() => void launchLeague()}
+        onSearch={() => setSearching(true)}
+        onChampion={openChampion}
+      />
     )
   }
 
@@ -389,23 +309,21 @@ export function App() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="drag flex h-11 shrink-0 items-center gap-4 border-b border-line pr-36 pl-4">
-        <span className="display text-[17px] tracking-[0.18em]">GLYPH</span>
-        <span className="flex items-center gap-1.5 text-[12px] text-mute">
-          <span className={`size-1.5 rounded-full ${connected ? 'bg-up' : 'bg-mute/50'}`} />
-          {STATUS_LABELS[status]}
-          {connected && league.summonerName && ` · ${league.summonerName}`}
-        </span>
-        {data && (
-          <button
-            onClick={() => setSearching(true)}
-            className="no-drag ml-auto flex h-7 w-72 items-center justify-between rounded-md border border-line bg-surface px-3 text-[12px] text-mute hover:border-mute"
-          >
-            Suchen: Champion, Matchup, Item, Rune
-            <span className="text-[11px]">Strg K</span>
-          </button>
-        )}
-      </div>
+      <Header
+        status={status}
+        summonerName={connected ? league.summonerName : undefined}
+        onSearch={() => setSearching(true)}
+        info={
+          data && {
+            statsPatch: profile.data?.patch ?? null,
+            gamePatch: data.patch,
+            newPatch,
+            updating: update.busy,
+            updateError: update.message,
+            onUpdate: () => void updateData()
+          }
+        }
+      />
 
       <div className="relative flex min-h-0 flex-1">
         {data && championId !== null && (
@@ -435,23 +353,7 @@ export function App() {
         )}
       </div>
 
-      {data && (
-        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-line px-4 py-1.5 text-[11px] text-mute">
-          <span>
-            Statistiken: OP.GG, Ranked Solo{profile.data?.patch ? `, Patch ${profile.data.patch}` : ''} · Spieldaten: Data
-            Dragon {data.patch}, Meraki Analytics
-          </span>
-          {update.message ? (
-            <span className="text-down">{update.message}</span>
-          ) : (
-            newPatch && (
-              <button onClick={() => void updateData()} disabled={update.busy} className="shrink-0 text-bone hover:underline disabled:opacity-60">
-                {update.busy ? 'Aktualisiere …' : `Spieldaten für ${newPatch} laden`}
-              </button>
-            )
-          )}
-        </footer>
-      )}
+      <Footer />
 
       {data && searching && (
         <Search

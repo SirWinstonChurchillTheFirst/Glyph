@@ -6,7 +6,7 @@ import { checkUpdate, getStatic, updateStatic } from './data/store'
 import { LeagueService } from './league/LeagueService'
 import { LeagueWatcher } from './league/watcher'
 
-const BACKGROUND = '#0d1317'
+const BACKGROUND = '#080b0f'
 
 let window: BrowserWindow | null = null
 
@@ -15,21 +15,29 @@ const watcher = new LeagueWatcher(league, (state) => window?.webContents.send('l
 
 function createWindow(): void {
   window = new BrowserWindow({
-    width: 1240,
-    height: 820,
-    minWidth: 980,
-    minHeight: 620,
+    width: 1280,
+    height: 800,
+    minWidth: 1040,
+    minHeight: 640,
     backgroundColor: BACKGROUND,
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: BACKGROUND, symbolColor: '#8695a0', height: 44 },
+    titleBarOverlay: { color: BACKGROUND, symbolColor: '#82909d', height: 44 },
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       sandbox: true
     }
   })
+  // Large windows scale the interface up instead of leaving it small in a corner.
+  const fitZoom = (): void => {
+    if (!window) return
+    const [width] = window.getContentSize()
+    window.webContents.setZoomFactor(width >= 2300 ? 1.5 : width >= 1800 ? 1.25 : width >= 1500 ? 1.1 : 1)
+  }
+  window.on('resize', fitZoom)
+  window.webContents.on('did-finish-load', fitZoom)
   window.removeMenu()
   window.once('ready-to-show', () => window?.show())
   window.on('closed', () => (window = null))

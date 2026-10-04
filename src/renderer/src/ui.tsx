@@ -165,7 +165,7 @@ export function Panel({
   className?: string
 }) {
   return (
-    <section className={`rounded-md border border-line bg-surface p-4 ${className}`}>
+    <section className={`rounded-xl border border-line bg-surface p-4 ${className}`}>
       {(title || aside) && (
         <div className="mb-3 flex items-baseline justify-between gap-3">
           {title && <h2 className="display text-[15px] text-bone">{title}</h2>}
@@ -210,6 +210,35 @@ export function Notice({ children, onRetry }: { children: ReactNode; onRetry?: (
   )
 }
 
-export function Loading({ label }: { label: string }) {
-  return <div className="loading rounded-md border border-line bg-surface px-4 py-6 text-center text-mute">{label}</div>
+/** Placeholder in the shape of the decision view while statistics load. */
+export function Skeleton({ label }: { label: string }) {
+  const block = (className: string) => <div className={`loading rounded-xl bg-surface ${className}`} />
+  return (
+    <div>
+      <p className="mb-3 text-[12px] text-mute">{label}</p>
+      <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-4">
+        <div className="space-y-4">
+          {block('h-64')}
+          {block('h-44')}
+        </div>
+        <div className="space-y-4">
+          {block('h-28')}
+          {block('h-56')}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** The GLYPH mark: a win-rate range, the 50 % tick and the measured point. */
+export function Mark({ size = 72 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 512 512" aria-hidden>
+      <rect x="4" y="4" width="504" height="504" rx="116" fill="#0d1218" stroke="#1c2730" strokeWidth="8" />
+      <line x1="96" y1="256" x2="416" y2="256" stroke="#2c3a46" strokeWidth="14" strokeLinecap="round" />
+      <line x1="256" y1="150" x2="256" y2="362" stroke="#82909d" strokeWidth="14" strokeLinecap="round" />
+      <rect x="236" y="226" width="150" height="60" rx="30" fill="#d6ad62" opacity="0.38" />
+      <circle cx="316" cy="256" r="46" fill="#d6ad62" />
+    </svg>
+  )
 }

@@ -1,3 +1,4 @@
+import { AlertCircle, Check, Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import type { ImportRequest } from '../../shared/types'
 
@@ -39,21 +40,15 @@ export function ImportButton({ request, text, connected }: Props) {
     }
   }
 
-  const primary =
-    'h-9 rounded-md bg-gold px-5 text-[13px] font-semibold text-ink hover:brightness-110 disabled:opacity-35 disabled:hover:brightness-100'
-
   if (phase.step === 'confirm') {
     return (
       <div className="space-y-2">
         <p className="text-[12px] text-mute">Keine freie Runenseite. „{phase.page.name}“ überschreiben?</p>
         <div className="flex gap-2">
-          <button className={primary} onClick={() => void run(phase.page.id)}>
+          <button className="primary h-9 px-5" onClick={() => void run(phase.page.id)}>
             Überschreiben
           </button>
-          <button
-            className="h-9 rounded-md border border-line px-4 text-mute hover:text-bone"
-            onClick={() => setPhase({ step: 'idle' })}
-          >
+          <button className="card h-9 px-4 text-mute hover:text-bone" onClick={() => setPhase({ step: 'idle' })}>
             Abbrechen
           </button>
         </div>
@@ -61,10 +56,20 @@ export function ImportButton({ request, text, connected }: Props) {
     )
   }
 
+  const [icon, label] =
+    phase.step === 'busy'
+      ? [<Loader2 size={15} className="spin" />, 'Importiere …']
+      : phase.step === 'done'
+        ? [<Check size={16} />, 'Runen importiert']
+        : phase.step === 'error'
+          ? [<AlertCircle size={15} />, 'Erneut versuchen']
+          : [<Download size={15} />, 'Runen importieren']
+
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <button className={primary} disabled={!connected || phase.step === 'busy'} onClick={() => void run()}>
-        {phase.step === 'busy' ? 'Importiere …' : phase.step === 'done' ? 'Importiert ✓' : 'Runen importieren'}
+      <button className="primary h-9 px-5" disabled={!connected || phase.step === 'busy'} onClick={() => void run()}>
+        {icon}
+        {label}
       </button>
       <button className="text-[12px] text-mute underline-offset-2 hover:text-bone hover:underline" onClick={() => void copy()}>
         Als Text kopieren
