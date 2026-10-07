@@ -5,6 +5,9 @@ import { OpggCredit } from './OpggCredit'
 import { Figure } from './ui'
 import { t } from '../../shared/i18n'
 
+const SPLASH_FADE =
+  'linear-gradient(to right, transparent 0%, black 55%), linear-gradient(to bottom, black 55%, transparent 100%)'
+
 export const TABS = [
   ['decision', t('Entscheidung')],
   ['builds', 'Builds'],
@@ -35,9 +38,11 @@ export function ChampionHeader({ champion, opponentName, roles, role, onRole, st
       <img
         src={splashUrl(champion.key)}
         alt=""
-        className="absolute inset-y-0 right-0 h-full w-2/3 object-cover object-[50%_18%] opacity-60"
+        className="absolute inset-y-0 right-0 h-full w-3/4 object-cover object-[50%_18%] opacity-60"
+        // Fades out to the left and towards the tabs, so the picture has no visible edge.
+        style={{ maskImage: SPLASH_FADE, maskComposite: 'intersect' }}
       />
-      <div className="absolute inset-0 bg-linear-to-r from-ink via-ink/85 to-ink/10" />
+      <div className="absolute inset-0 bg-linear-to-r from-ink via-ink/60 to-transparent" />
 
       <div className="relative flex items-end justify-between gap-6 px-6 pt-5 pb-3">
         <div>
