@@ -21,6 +21,7 @@ export const EN: Record<string, string> = {
   Spieldaten: 'Game data',
   'Klassen und Wertungen': 'Classes and ratings',
   Sprache: 'Language',
+  'Statistiken von': 'Statistics by',
   'Aktualisiere …': 'Updating …',
   'Spieldaten für {} laden': 'Load game data for {}',
   'Aktualisierung fehlgeschlagen: {}': 'Update failed: {}',

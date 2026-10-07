@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import type { ChampionInfo, ChampionProfile, Role } from '../../shared/types'
 import { ROLE_LABELS, count, percent, splashUrl } from './lib'
+import { OpggCredit } from './OpggCredit'
 import { Figure } from './ui'
 import { t } from '../../shared/i18n'
 
@@ -83,7 +84,9 @@ export function ChampionHeader({ champion, opponentName, roles, role, onRole, st
         )}
       </div>
 
-      <nav className="relative flex gap-1 px-4">
+      {/* Every view of the dashboard shows OP.GG data, so the credit sits in the header that stays on all of them. */}
+      <div className="relative flex items-end justify-between gap-4 pr-6 pl-4">
+      <nav className="flex gap-1">
         {TABS.map(([id, label]) => (
           <button
             key={id}
@@ -96,6 +99,10 @@ export function ChampionHeader({ champion, opponentName, roles, role, onRole, st
           </button>
         ))}
       </nav>
+      <div className="pb-1.5">
+        <OpggCredit />
+      </div>
+      </div>
     </header>
   )
 }

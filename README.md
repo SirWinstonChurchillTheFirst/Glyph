@@ -88,6 +88,10 @@ No, Windows 10/11 (64-bit) only.
 | [Data Dragon](https://developer.riotgames.com/docs/lol#data-dragon) (Riot) | champions, items with their properties, runes, pictures | `data/static.json`, per patch |
 | [Meraki Analytics](https://github.com/meraki-analytics/lolstaticdata) | Riot's champion classes, 1–3 ratings, damage type, positions | `data/static.json`, per patch |
 
+OP.GG allows Glyph to use its data as long as the OP.GG logo and a link to [op.gg](https://op.gg) are shown wherever
+that data appears – Glyph shows both in the header of every champion view. OP.GG may restrict access depending on request
+volume and can ask for the use to stop at any time.
+
 How a recommendation is made:
 
 - **Runes:** among the pages with at least 30 games, the one whose 95 % range has the highest lower end. “Clear
